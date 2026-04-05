@@ -1,0 +1,61 @@
+name: Release Artifacts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Printable Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build all parts
+        run: uv run python scripts/build.py
+
+      - name: Validate meshes
+        run: |
+          uv run python -c "
+          import sys
+          from pathlib import Path
+          import trimesh
+
+          output = Path('output')
+          failed = False
+          for stl in sorted(output.rglob('*.stl')):
+              mesh = trimesh.load(str(stl))
+              mesh.merge_vertices()
+              euler_ok = mesh.euler_number == 2
+              volume_ok = mesh.volume > 0
+              status = 'OK' if (euler_ok and volume_ok) else 'FAIL'
+              print(f'{stl.relative_to(output)}: {status} (euler={mesh.euler_number}, volume={mesh.volume:.1f}, faces={len(mesh.faces)})')
+              if not (euler_ok and volume_ok):
+                  failed = True
+          sys.exit(1 if failed else 0)
+          "
+
+      - name: Upload printable artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: printable-parts
+          path: |
+            output/**/*.stl
+            output/**/*.step
