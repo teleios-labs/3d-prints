@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# uv
+.venv/
+
+# Build output (generated, not checked in)
+output/*.stl
+output/*.step
+output/**/*.stl
+output/**/*.step
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
