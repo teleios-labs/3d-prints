@@ -1,0 +1,46 @@
+"""Shared dimensions and constants for CrowPanel 7" case design.
+
+All measurements in millimeters. Source: Elecrow STEP file + datasheet.
+Board: CrowPanel Advance 7" (DIS02170A V1.3/V1.4)
+"""
+
+# --- Board dimensions (from STEP model) ---
+BOARD_LENGTH = 181.26  # X axis
+BOARD_HEIGHT = 108.36  # Y axis
+BOARD_DEPTH = 16.00    # Z axis (total thickness)
+
+# --- Display ---
+DISPLAY_ACTIVE_WIDTH = 156.0
+DISPLAY_ACTIVE_HEIGHT = 87.0
+
+# --- USB-C port (right edge, centered vertically) ---
+USB_EDGE = "right"  # X ≈ 170mm
+USB_CENTER_Y = 52.0  # approximate center from board bottom
+USB_WIDTH = 8.9
+USB_HEIGHT = 4.2
+
+# --- Rail/channel system ---
+RAIL_WIDTH = 10.0
+RAIL_DEPTH = 7.0
+RAIL_CLEARANCE = 0.5       # total clearance (0.25 each side)
+CHANNEL_WIDTH = RAIL_WIDTH + RAIL_CLEARANCE  # 10.5mm
+CHANNEL_DEPTH = RAIL_DEPTH + 0.3             # 7.3mm vertical clearance
+
+# --- Bracket ---
+BRACKET_WALL = 3.0          # wall thickness around structural features
+BRACKET_ARM_LENGTH = 60.0   # how far arms extend from hub
+BRACKET_HUB_WIDTH = 50.0    # central hub X dimension
+BRACKET_HUB_HEIGHT = 30.0   # central hub Y dimension
+BRACKET_THICKNESS = 4.0     # Z thickness of bracket base
+
+# --- Mounting ---
+SCREW_HOLE_DIAMETER = 4.0   # for M3 + clearance (drywall anchors)
+SCREW_HEAD_DIAMETER = 7.0   # M3 screw head clearance
+
+# --- Snap lock ---
+SNAP_PROTRUSION = 2.0       # how far the snap bump sticks out
+SNAP_RAMP_LENGTH = 5.0      # gradual ramp for easy engagement
+SNAP_CATCH_LENGTH = 2.0     # flat catch surface
+
+# --- Printer tolerances ---
+PRINTER_UNDERSIZING = 0.19  # Centauri Carbon 2 average (parts print smaller)
