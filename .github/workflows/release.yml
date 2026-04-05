@@ -43,10 +43,11 @@ jobs:
           for stl in sorted(output.rglob('*.stl')):
               mesh = trimesh.load(str(stl))
               mesh.merge_vertices()
-              euler_ok = mesh.euler_number == 2
+              expected_euler = 2 * mesh.body_count
+              euler_ok = mesh.euler_number == expected_euler
               volume_ok = mesh.volume > 0
               status = 'OK' if (euler_ok and volume_ok) else 'FAIL'
-              print(f'{stl.relative_to(output)}: {status} (euler={mesh.euler_number}, volume={mesh.volume:.1f}, faces={len(mesh.faces)})')
+              print(f'{stl.relative_to(output)}: {status} (euler={mesh.euler_number}, bodies={mesh.body_count}, volume={mesh.volume:.1f}, faces={len(mesh.faces)})')
               if not (euler_ok and volume_ok):
                   failed = True
           sys.exit(1 if failed else 0)
