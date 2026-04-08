@@ -19,10 +19,10 @@ def test_mesh_is_valid(export_and_load):
 
 
 def test_fits_on_print_bed(export_and_load):
-    """Part fits within 100x50x20mm — small enough for a quick test print."""
+    """Part fits within the Centauri Carbon 2 build plate (256x256mm)."""
     part = build()
     mesh = export_and_load(part, "tolerance_test")
     extents = mesh.bounding_box.extents
-    assert extents[0] < 100, f"Too wide: {extents[0]:.1f}mm"
-    assert extents[1] < 50, f"Too deep: {extents[1]:.1f}mm"
-    assert extents[2] < 20, f"Too tall: {extents[2]:.1f}mm"
+    assert extents[0] < 256, f"Too wide: {extents[0]:.1f}mm"
+    assert extents[1] < 256, f"Too deep: {extents[1]:.1f}mm"
+    assert extents[2] < 256, f"Too tall: {extents[2]:.1f}mm"
