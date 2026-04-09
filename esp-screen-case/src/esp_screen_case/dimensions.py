@@ -20,10 +20,16 @@ USB_WIDTH = 8.9
 USB_HEIGHT = 4.2
 
 # --- Rail/channel system ---
+# Clearance history (PLA tests):
+#   0.5mm total — too loose
+#   0.3mm total — still slightly loose
+#   0.1mm total — good PLA fit
+# For PETG (target material) add 0.1mm extra for die swell → 0.2mm total.
+# Re-test after first PETG print and adjust.
 RAIL_WIDTH = 10.0
 RAIL_DEPTH = 7.0
-RAIL_CLEARANCE = 0.1       # total clearance (0.05 each side) — 0.5 and 0.3 both too loose
-CHANNEL_WIDTH = RAIL_WIDTH + RAIL_CLEARANCE  # 10.5mm
+RAIL_CLEARANCE = 0.2       # 0.1 each side — PETG-tuned starting point
+CHANNEL_WIDTH = RAIL_WIDTH + RAIL_CLEARANCE  # 10.2mm
 CHANNEL_DEPTH = RAIL_DEPTH + 0.3             # 7.3mm vertical clearance
 
 # --- Bracket ---
