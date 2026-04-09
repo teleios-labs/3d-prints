@@ -63,16 +63,26 @@ SCREW_Y_OFFSET = (BASE_PLATE_WIDTH / 2 + RAIL_BASE_WIDTH / 2) / 2  # 9.75
 SCREW_Y_NEG = -PIECE_OFFSET_Y - SCREW_Y_OFFSET  # -25.0
 SCREW_Y_POS = -PIECE_OFFSET_Y + SCREW_Y_OFFSET  # -5.5
 
-# Golden scalars — captured from working code on 2026-04-09.
+# Golden scalars — captured 2026-04-09 from cadlib-based construction.
+#
+# History: initial capture from the original inline builder code was
+# ~26mm³ (piece A) and ~51mm³ (piece B) different from these values.
+# The old construction used "wide box + subtract corner triangles" for
+# the dovetail, which left tiny slivers of extra material near the
+# corners due to 0.1mm clipping overshoots. The refactored Dovetail
+# class extrudes a clean trapezoidal sketch directly, matching the
+# theoretical dovetail volume (9554.60 mm³ for piece A) to within
+# tessellation noise.
+#
 # To recapture: uv run python esp-screen-case/tests/capture_tolerance_golden.py
-GOLDEN_TOTAL_VOLUME = 17714.4398
+GOLDEN_TOTAL_VOLUME = 17739.1986
 GOLDEN_TOTAL_BBOX = (60.0000, 55.0000, 11.8000)
 
-GOLDEN_A_VOLUME = 9581.0057
+GOLDEN_A_VOLUME = 9554.6330
 GOLDEN_A_BBOX = (60.0000, 30.0000, 11.0000)
 GOLDEN_A_CENTROID_Y = -15.2500
 
-GOLDEN_B_VOLUME = 8133.4341
+GOLDEN_B_VOLUME = 8184.5656
 GOLDEN_B_BBOX = (60.0000, 19.0000, 11.8000)
 GOLDEN_B_CENTROID_Y = 15.2500
 
