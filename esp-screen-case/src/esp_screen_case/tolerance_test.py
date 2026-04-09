@@ -21,9 +21,12 @@ Slide direction: -X (open entry) ──────► +X (end stop + snap click
 
 from build123d import (
     Align,
+    Axis,
     Box,
     BuildPart,
     BuildSketch,
+    Circle,
+    Locations,
     Mode,
     Part,
     Plane,
@@ -36,6 +39,7 @@ from build123d import (
 from esp_screen_case.dimensions import (
     RAIL_DEPTH,
     RAIL_WIDTH,
+    SCREW_HOLE_DIAMETER,
     SNAP_CATCH_LENGTH,
     SNAP_POCKET_EXTRA,
     SNAP_POCKET_RAMP,
@@ -123,6 +127,19 @@ def build() -> Part:
                         align=None,
                     )
             extrude(amount=LENGTH + 1, mode=Mode.SUBTRACT)
+
+        # Wall-mount screw holes in piece A base plate (2 holes, flanking the rail)
+        # Positioned on either side of the rail along Y, near the center of X
+        # so they're accessible and don't interfere with the slide action
+        screw_y_offset = (BASE_WIDTH / 2 + DOVE_BASE / 2) / 2  # midway between edge and rail
+        screw_positions = [
+            (0, -piece_offset - screw_y_offset),  # -Y side of rail
+            (0, -piece_offset + screw_y_offset),  # +Y side of rail
+        ]
+        with BuildSketch(Plane.XY.offset(BASE_THICK)):
+            with Locations(screw_positions):
+                Circle(SCREW_HOLE_DIAMETER / 2)
+        extrude(amount=-BASE_THICK - 0.1, mode=Mode.SUBTRACT)
 
         # Snap bump on rail: small bump with entry ramp
         #
