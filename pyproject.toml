@@ -9,6 +9,7 @@ dev = [
     "esp-screen-case",
     "pytest>=8.0",
     "trimesh>=4.0",
+    "rtree>=1.0",
 ]
 
 [tool.uv.workspace]
