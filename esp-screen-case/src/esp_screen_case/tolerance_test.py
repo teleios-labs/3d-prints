@@ -67,9 +67,14 @@ CHAN_BASE = DOVE_BASE + 2 * CLEARANCE
 CHAN_TOP = DOVE_TOP + 2 * CLEARANCE
 CHAN_HT = DOVE_HT + 0.3
 
-# --- Frame — tall enough for channel + bump groove + pocket above ---
+# --- Frame — tall enough for channel + bump groove + pocket + solid roof ---
+# ROOF_THICK is the solid material above the deepest point of the snap
+# pocket. The pocket is a short cavity (~5.5mm long including ramps) in
+# the channel ceiling, so its top layers print as a bridge — we want it
+# thick enough to feel rigid when the bump clicks in, not flex like a
+# drumhead. 5mm = 25 layers at 0.2mm, comfortably solid for PETG.
 FRAME_WIDTH = DOVE_BASE + 10.0
-FRAME_HT = BASE_THICK + CHAN_HT + SNAP_PROTRUSION + 0.5
+ROOF_THICK = 5.0
 
 SCORE_GAP = 0.5
 END_WALL = 2.0
@@ -85,6 +90,7 @@ BUMP_WIDTH = DOVE_TOP - 1.0                    # slightly narrower than rail top
 GROOVE_WIDTH = BUMP_WIDTH + 0.4                # slight clearance around the bump
 GROOVE_DEPTH = SNAP_PROTRUSION + 0.1           # slight vertical clearance above bump
 GROOVE_TOP_Z = CHAN_HT + GROOVE_DEPTH          # ceiling level of the bump groove
+FRAME_HT = GROOVE_TOP_Z + SNAP_POCKET_EXTRA + ROOF_THICK
 
 
 def build() -> Part:
