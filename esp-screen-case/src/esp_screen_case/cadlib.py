@@ -252,20 +252,26 @@ class SnapPocket(BasePartObject):
         mode: Mode = Mode.SUBTRACT,
     ):
         half_catch = catch_length / 2
-        total_len = catch_length + 2 * ramp_length
 
         floor_z = -self._FLOOR_OVERSHOOT
         recess_top_z = extra_depth + self._RECESS_OVERSHOOT
         ramp_peak_z = recess_top_z + self._RAMP_EXTRA
 
         with BuildPart() as ctx:
-            # Main flat recess — centered in Z between floor and recess top
+            # Main flat recess — spans only the catch region at full depth.
+            # The ramp wedges below extend the cut into the ramp X regions
+            # with linearly varying depth. (Earlier versions sized this box
+            # to catch + 2*ramp at full depth, which made the ramp wedges
+            # a strict subset of the box and contributed nothing — the
+            # resulting pocket was a flat-bottomed box, not a ramped
+            # detent.)
             recess_center = (floor_z + recess_top_z) / 2
             recess_height = recess_top_z - floor_z
             with Locations(Pos(0, 0, recess_center)):
-                Box(total_len, width, recess_height)
+                Box(catch_length, width, recess_height)
 
-            # Entry ramp on -X side: blend from groove level up to pocket peak
+            # Entry ramp on -X side: blend from groove level at the outer
+            # edge up to pocket peak where it meets the catch.
             entry_face = _xz_triangle_face(
                 -half_catch - ramp_length, -half_catch, floor_z, ramp_peak_z
             )

@@ -61,6 +61,7 @@ CHANNEL_NARROW_BASE_Z = FRAME_HEIGHT                    # 13.8 — channel openi
 SNAP_X = 26.25  # center X of the snap catch on the rail / pocket on the channel
 SNAP_PROTRUSION = 1.0
 SNAP_CATCH_LENGTH = 1.5
+SNAP_POCKET_RAMP = 2.0
 SNAP_POCKET_EXTRA_DEPTH = 0.4
 BUMP_GROOVE_Z_MAX = CHANNEL_WIDE_TOP_Z                   # 6.5 — groove ceiling (toward channel)
 BUMP_GROOVE_Z_MIN = BUMP_GROOVE_Z_MAX - (SNAP_PROTRUSION + 0.1)  # 5.4
@@ -85,14 +86,14 @@ SCREW_Y_POS = -PIECE_OFFSET_Y + SCREW_Y_OFFSET  # -5.5
 # tessellation noise.
 #
 # To recapture: uv run python esp-screen-case/tests/capture_tolerance_golden.py
-GOLDEN_TOTAL_VOLUME = 19950.6831
+GOLDEN_TOTAL_VOLUME = 19960.9431
 GOLDEN_TOTAL_BBOX = (60.0000, 55.0000, 13.8000)
 
 GOLDEN_A_VOLUME = 9554.6018
 GOLDEN_A_BBOX = (60.0000, 30.0000, 11.0000)
 GOLDEN_A_CENTROID_Y = -15.2500
 
-GOLDEN_B_VOLUME = 10396.0814
+GOLDEN_B_VOLUME = 10406.3414
 GOLDEN_B_BBOX = (60.0000, 19.0000, 13.8000)
 GOLDEN_B_CENTROID_Y = 15.2500
 
@@ -357,6 +358,36 @@ class TestPieceB:
                 (10.0, PIECE_OFFSET_Y, z_pocket),
             ],
             "frame below groove away from SNAP_X",
+        )
+
+    def test_snap_pocket_has_ramps(self, tolerance_bodies):
+        """Pocket ramps blend linearly from groove depth at the outer edge
+        to full pocket depth where they meet the catch.
+
+        Probe 1: mid-ramp at the deepest pocket Z should be solid — at
+        half the ramp length the cut is only half as deep, so the
+        deepest slice is still uncut roof material. A regression that
+        made the pocket a flat-bottomed box would see this as empty.
+
+        Probe 2: mid-ramp at a Z ~75% of the way down should be empty —
+        the partial cut reaches here. Catches the opposite regression
+        where the ramp disappears entirely.
+        """
+        _, piece_b = tolerance_bodies
+
+        mid_ramp_x = SNAP_X - SNAP_CATCH_LENGTH / 2 - SNAP_POCKET_RAMP / 2  # 24.5
+        deep_z = POCKET_Z_MIN + 0.05     # near the deepest pocket level
+        partial_z = POCKET_Z_MAX - 0.05  # near the shallow end of the pocket
+
+        assert_solid(
+            piece_b,
+            [(mid_ramp_x, PIECE_OFFSET_Y, deep_z)],
+            "ramp not full-depth at mid-length",
+        )
+        assert_empty(
+            piece_b,
+            [(mid_ramp_x, PIECE_OFFSET_Y, partial_z)],
+            "ramp reaches partial depth at mid-length",
         )
 
     def test_end_wall_has_dovetail_hole(self, tolerance_bodies):
