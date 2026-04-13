@@ -45,6 +45,9 @@ from esp_screen_case.dimensions import (
     RAIL_DEPTH,
     RAIL_WIDTH,
     SCREW_HOLE_DIAMETER,
+    SNAP_CANT_LENGTH,
+    SNAP_CANT_SLOT_HEIGHT,
+    SNAP_CANT_THICK,
     SNAP_CATCH_LENGTH,
     SNAP_POCKET_EXTRA,
     SNAP_POCKET_RAMP,
@@ -65,10 +68,13 @@ DOVE_HT = RAIL_DEPTH           # 7mm
 RAIL_TOP_Z = BASE_THICK + DOVE_HT  # 10mm — top surface of the rail
 
 # --- Channel (rail profile + clearance) ---
+# Z clearance is tight (0.1mm) so the rail's vertical position inside
+# the channel is predictable — the cantilever snap relies on the bump
+# sitting at a known height relative to the groove ceiling.
 CLEARANCE = 0.2
 CHAN_BASE = DOVE_BASE + 2 * CLEARANCE
 CHAN_TOP = DOVE_TOP + 2 * CLEARANCE
-CHAN_HT = DOVE_HT + 0.3
+CHAN_HT = DOVE_HT + 0.1
 
 # --- Frame — tall enough for channel + bump groove + pocket + solid roof ---
 # ROOF_THICK is the solid material above the deepest point of the snap
@@ -94,7 +100,10 @@ BUMP_WIDTH = DOVE_TOP - 1.0                    # slightly narrower than rail top
 # stay flush — no inward lip at the channel/groove transition. (The
 # bump still gets its Y clearance via BUMP_WIDTH being narrower.)
 GROOVE_WIDTH = CHAN_TOP
-GROOVE_DEPTH = SNAP_PROTRUSION + 0.1           # slight vertical clearance above bump
+# Groove depth is set so `SNAP_PROTRUSION - GROOVE_DEPTH - Z_slop ≈ 0.2mm`
+# of interference above the groove ceiling. The rail's cantilever tongue
+# flexes to absorb it during sliding and snaps back at the pocket.
+GROOVE_DEPTH = 1.0
 GROOVE_TOP_Z = CHAN_HT + GROOVE_DEPTH          # ceiling level of the bump groove
 FRAME_HT = GROOVE_TOP_Z + SNAP_POCKET_EXTRA + ROOF_THICK
 
@@ -162,6 +171,30 @@ def build() -> Part:
         # Dovetail rail sitting on the base plate
         with Locations(Pos(0, -piece_offset, BASE_THICK)):
             DovetailRail(LENGTH, DOVE_BASE, DOVE_TOP, DOVE_HT)
+
+        # Cantilever slot — cut a horizontal void inside the rail so the
+        # top `SNAP_CANT_THICK` of material above the slot acts as a
+        # flexing tongue anchored at the -X end of the slot and free at
+        # the +X (rail tip) end. The snap bump at SNAP_X sits near the
+        # tongue's free end and deflects downward when it meets the
+        # channel's groove ceiling, then springs back at the pocket.
+        slot_x_end = LENGTH / 2 + 0.5              # 0.5mm past rail +X end
+        slot_x_start = slot_x_end - SNAP_CANT_LENGTH
+        slot_z_top = RAIL_TOP_Z - SNAP_CANT_THICK   # slot ceiling = tongue bottom
+        slot_z_bot = slot_z_top - SNAP_CANT_SLOT_HEIGHT
+        with Locations(
+            Pos(
+                (slot_x_start + slot_x_end) / 2,
+                -piece_offset,
+                (slot_z_top + slot_z_bot) / 2,
+            )
+        ):
+            Box(
+                slot_x_end - slot_x_start,
+                RAIL_WIDTH + 2,  # wider than the rail for a clean cut-through in Y
+                slot_z_top - slot_z_bot,
+                mode=Mode.SUBTRACT,
+            )
 
         # Wall-mount screw holes flanking the rail
         screw_y_offset = (BASE_WIDTH / 2 + DOVE_BASE / 2) / 2

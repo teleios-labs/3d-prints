@@ -32,13 +32,23 @@ PIECE_OFFSET_Y = 15.25  # piece A at -Y, piece B at +Y
 SCORE_GAP = 0.5
 LENGTH = 60.0
 
-# Piece A — dovetail rail on a flat base plate
+# Piece A — dovetail rail on a flat base plate, with a cantilever slot
+# cut into the rail near the +X end
 BASE_PLATE_WIDTH = 30.0
 BASE_PLATE_THICK = 3.0
 RAIL_BASE_WIDTH = 9.0  # narrow bottom of dovetail
 RAIL_TOP_WIDTH = 11.0  # wider top — the undercut
 RAIL_HEIGHT = 7.0
 RAIL_TOP_Z = BASE_PLATE_THICK + RAIL_HEIGHT  # 10.0
+
+# Cantilever snap tongue — horizontal slot cut into the rail
+CANT_LENGTH = 8.0             # slot X extent (anchor to free end)
+CANT_THICK = 2.0              # tongue thickness above the slot
+CANT_SLOT_HEIGHT = 1.5        # slot void height
+CANT_SLOT_Z_TOP = RAIL_TOP_Z - CANT_THICK          # 8.0 — tongue bottom
+CANT_SLOT_Z_BOT = CANT_SLOT_Z_TOP - CANT_SLOT_HEIGHT  # 6.5
+CANT_SLOT_X_END = LENGTH / 2 + 0.5                 # 30.5
+CANT_SLOT_X_START = CANT_SLOT_X_END - CANT_LENGTH  # 22.5
 
 # Piece B — dovetail channel
 #
@@ -50,21 +60,23 @@ RAIL_TOP_Z = BASE_PLATE_THICK + RAIL_HEIGHT  # 10.0
 #   Z=FRAME_HEIGHT - CHANNEL_HEIGHT .... channel wide top (rail's undercut contact)
 #   Z=FRAME_HEIGHT ..................... channel narrow base (opening to air)
 FRAME_WIDTH = 19.0
-FRAME_HEIGHT = 13.8
-CHANNEL_BASE_WIDTH = 9.4  # narrow end of the dovetail (rail base + 2*clearance)
-CHANNEL_TOP_WIDTH = 11.4  # wider end of the dovetail
-CHANNEL_HEIGHT = 7.3
-CHANNEL_WIDE_TOP_Z = FRAME_HEIGHT - CHANNEL_HEIGHT      # 6.5 — where rail's top presses
-CHANNEL_NARROW_BASE_Z = FRAME_HEIGHT                    # 13.8 — channel opening (top of print)
+CHANNEL_HEIGHT = 7.1          # DOVE_HT + 0.1 (tight Z clearance for cantilever snap)
+GROOVE_DEPTH = 1.0            # hardcoded — decoupled from SNAP_PROTRUSION
+ROOF_THICK = 5.0
+SNAP_POCKET_EXTRA_DEPTH = 0.4
+FRAME_HEIGHT = CHANNEL_HEIGHT + GROOVE_DEPTH + SNAP_POCKET_EXTRA_DEPTH + ROOF_THICK  # 13.5
+CHANNEL_BASE_WIDTH = 9.4      # narrow end of the dovetail (rail base + 2*clearance)
+CHANNEL_TOP_WIDTH = 11.4      # wider end of the dovetail
+CHANNEL_WIDE_TOP_Z = FRAME_HEIGHT - CHANNEL_HEIGHT  # 6.4 — where rail's top presses
+CHANNEL_NARROW_BASE_Z = FRAME_HEIGHT                # 13.5 — channel opening (top of print)
 
 # Snap mechanism
 SNAP_X = 26.25  # center X of the snap catch on the rail / pocket on the channel
-SNAP_PROTRUSION = 1.0
+SNAP_PROTRUSION = 1.3         # bump height (intentional 0.2mm interference in groove)
 SNAP_CATCH_LENGTH = 1.5
 SNAP_POCKET_RAMP = 2.0
-SNAP_POCKET_EXTRA_DEPTH = 0.4
-BUMP_GROOVE_Z_MAX = CHANNEL_WIDE_TOP_Z                   # 6.5 — groove ceiling (toward channel)
-BUMP_GROOVE_Z_MIN = BUMP_GROOVE_Z_MAX - (SNAP_PROTRUSION + 0.1)  # 5.4
+BUMP_GROOVE_Z_MAX = CHANNEL_WIDE_TOP_Z                   # 6.4 — groove ceiling (toward channel)
+BUMP_GROOVE_Z_MIN = BUMP_GROOVE_Z_MAX - GROOVE_DEPTH     # 5.4
 POCKET_Z_MAX = BUMP_GROOVE_Z_MIN                         # 5.4 — pocket meets groove (shallowest)
 POCKET_Z_MIN = POCKET_Z_MAX - SNAP_POCKET_EXTRA_DEPTH    # 5.0 — deepest pocket level
 
@@ -91,15 +103,15 @@ SCREW_Y_POS = -PIECE_OFFSET_Y + SCREW_Y_OFFSET  # -5.5
 # tessellation noise.
 #
 # To recapture: `make update-goldens`
-GOLDEN_TOTAL_VOLUME = 19960.9743
-GOLDEN_TOTAL_BBOX = (60.0000, 55.0000, 13.8000)
+GOLDEN_TOTAL_VOLUME = 19706.2634
+GOLDEN_TOTAL_BBOX = (60.0000, 55.0000, 13.5000)
 
-GOLDEN_A_VOLUME = 9554.6330
-GOLDEN_A_BBOX = (60.0000, 30.0000, 11.0000)
+GOLDEN_A_VOLUME = 9448.7223
+GOLDEN_A_BBOX = (60.0000, 30.0000, 11.3000)
 GOLDEN_A_CENTROID_Y = -15.2500
 
-GOLDEN_B_VOLUME = 10406.3412
-GOLDEN_B_BBOX = (60.0000, 19.0000, 13.8000)
+GOLDEN_B_VOLUME = 10257.5411
+GOLDEN_B_BBOX = (60.0000, 19.0000, 13.5000)
 GOLDEN_B_CENTROID_Y = 15.2500
 
 # Tolerances
@@ -267,6 +279,55 @@ class TestPieceA:
             (0.0, SCREW_Y_POS, z_mid),  # +Y hole
         ]
         assert_empty(piece_a, probes, "screw holes")
+
+    def test_cantilever_slot_is_hollow(self, tolerance_bodies):
+        """Cantilever snap slot is an empty void in the rail, with
+        solid tongue material above and solid rail material below.
+
+        The mechanism depends on the top of the rail being a flexible
+        cantilever — if this slot regresses to solid (or shifts too
+        close to the rail top), the tongue won't flex and the snap
+        won't click.
+        """
+        piece_a, _ = tolerance_bodies
+        x_mid_slot = (CANT_SLOT_X_START + CANT_SLOT_X_END) / 2  # 26.5
+        z_in_slot = (CANT_SLOT_Z_TOP + CANT_SLOT_Z_BOT) / 2     # 7.25
+
+        assert_empty(
+            piece_a,
+            [(x_mid_slot, -PIECE_OFFSET_Y, z_in_slot)],
+            "cantilever slot void",
+        )
+
+        # Tongue material above the slot
+        z_in_tongue = (CANT_SLOT_Z_TOP + RAIL_TOP_Z) / 2        # 9.0
+        assert_solid(
+            piece_a,
+            [(x_mid_slot, -PIECE_OFFSET_Y, z_in_tongue)],
+            "cantilever tongue",
+        )
+
+        # Rail material below the slot
+        z_below_slot = (CANT_SLOT_Z_BOT + BASE_PLATE_THICK) / 2  # ~4.75
+        assert_solid(
+            piece_a,
+            [(x_mid_slot, -PIECE_OFFSET_Y, z_below_slot)],
+            "rail material below slot",
+        )
+
+    def test_rail_is_solid_at_slot_z_away_from_slot_x(self, tolerance_bodies):
+        """Outside the slot's X range, the rail is solid at the same Z
+        levels where the slot exists. Catches a regression that would
+        make the slot span the whole rail instead of just the snap end.
+        """
+        piece_a, _ = tolerance_bodies
+        z_would_be_slot = (CANT_SLOT_Z_TOP + CANT_SLOT_Z_BOT) / 2  # 7.25
+        probes = [
+            (-25.0, -PIECE_OFFSET_Y, z_would_be_slot),
+            (0.0, -PIECE_OFFSET_Y, z_would_be_slot),
+            (15.0, -PIECE_OFFSET_Y, z_would_be_slot),  # still before slot start at 22.5
+        ]
+        assert_solid(piece_a, probes, "rail solid at slot Z, away from slot X")
 
 
 # ============================================================================

@@ -44,14 +44,22 @@ SCREW_HOLE_DIAMETER = 4.0   # for M3 + clearance (drywall anchors)
 SCREW_HEAD_DIAMETER = 7.0   # M3 screw head clearance
 
 # --- Snap lock ---
-# Design: small bump on rail slides in a shallow groove in the channel ceiling.
-# Groove runs full length, pocket at end is slightly deeper for snap click.
-# Both pocket edges ramp to allow smooth engagement + moderate release force.
-SNAP_PROTRUSION = 1.0       # bump height (small — fits in channel clearance groove)
-SNAP_RAMP_LENGTH = 3.0      # 3mm ramp at ~18° angle for 1.0mm rise
+# Design: bump on rail rides a cantilever tongue cut into the top of the
+# rail. Bump protrudes above the groove ceiling (intentional 0.2mm
+# interference) so the tongue deflects downward as the rail slides in.
+# At the snap pocket the tongue springs back to its rest position,
+# producing the click. Earlier designs had SNAP_PROTRUSION < GROOVE_DEPTH
+# which meant no interference at all — the "snap" was just air.
+SNAP_PROTRUSION = 1.3       # bump height (0.2mm interference with 1.0mm groove + 0.1 slop)
+SNAP_RAMP_LENGTH = 3.0      # 3mm entry ramp on the bump (~23° at 1.3mm rise)
 SNAP_CATCH_LENGTH = 1.5     # flat catch surface length
 SNAP_POCKET_EXTRA = 0.4     # pocket is this much deeper than groove (snap drop)
 SNAP_POCKET_RAMP = 2.0      # 2mm ramps inside pocket on both sides
+
+# --- Cantilever snap tongue (carved into piece A's rail) ---
+SNAP_CANT_LENGTH = 8.0      # cantilever beam length (anchor to free +X end)
+SNAP_CANT_THICK = 2.0       # tongue thickness above the slot (flex material)
+SNAP_CANT_SLOT_HEIGHT = 1.5 # slot void height below the tongue
 
 # --- Printer tolerances ---
 PRINTER_UNDERSIZING = 0.19  # Centauri Carbon 2 average (parts print smaller)
