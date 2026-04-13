@@ -10,10 +10,13 @@ build/
 .venv/
 
 # Build output (generated, not checked in)
-output/*.stl
-output/*.step
-output/**/*.stl
-output/**/*.step
+output/
+
+# Slicer artifacts
+*.3mf
+
+# Large reference CAD files (kept out-of-tree)
+esp-screen-case/reference/
 
 # OS
 .DS_Store
