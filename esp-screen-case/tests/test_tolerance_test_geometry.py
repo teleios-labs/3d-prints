@@ -41,21 +41,31 @@ RAIL_HEIGHT = 7.0
 RAIL_TOP_Z = BASE_PLATE_THICK + RAIL_HEIGHT  # 10.0
 
 # Piece B — dovetail channel
+#
+# Piece B is printed channel-up (flipped 180° about X), so its Z layout
+# in the final mesh is inverted relative to "assembly orientation":
+#   Z=0 .. ROOF_THICK ................. solid roof sitting on the build plate
+#   Z=ROOF_THICK .. +SNAP_POCKET_EXTRA . snap pocket (local, at SNAP_X)
+#   Z=.. +GROOVE_DEPTH ................. bump groove (full length)
+#   Z=FRAME_HEIGHT - CHANNEL_HEIGHT .... channel wide top (rail's undercut contact)
+#   Z=FRAME_HEIGHT ..................... channel narrow base (opening to air)
 FRAME_WIDTH = 19.0
 FRAME_HEIGHT = 13.8
-CHANNEL_BASE_WIDTH = 9.4  # narrow at floor (rail base + 2*clearance)
-CHANNEL_TOP_WIDTH = 11.4  # wider at ceiling
+CHANNEL_BASE_WIDTH = 9.4  # narrow end of the dovetail (rail base + 2*clearance)
+CHANNEL_TOP_WIDTH = 11.4  # wider end of the dovetail
 CHANNEL_HEIGHT = 7.3
-CHANNEL_CEILING_Z = CHANNEL_HEIGHT  # 7.3
+CHANNEL_WIDE_TOP_Z = FRAME_HEIGHT - CHANNEL_HEIGHT      # 6.5 — where rail's top presses
+CHANNEL_NARROW_BASE_Z = FRAME_HEIGHT                    # 13.8 — channel opening (top of print)
 
 # Snap mechanism
 SNAP_X = 26.25  # center X of the snap catch on the rail / pocket on the channel
 SNAP_PROTRUSION = 1.0
 SNAP_CATCH_LENGTH = 1.5
 SNAP_POCKET_EXTRA_DEPTH = 0.4
-BUMP_GROOVE_Z_MIN = CHANNEL_CEILING_Z  # 7.3
-BUMP_GROOVE_Z_MAX = CHANNEL_CEILING_Z + SNAP_PROTRUSION + 0.1  # 8.4
-POCKET_Z_MAX = BUMP_GROOVE_Z_MAX + SNAP_POCKET_EXTRA_DEPTH + 0.05  # ~8.85
+BUMP_GROOVE_Z_MAX = CHANNEL_WIDE_TOP_Z                   # 6.5 — groove ceiling (toward channel)
+BUMP_GROOVE_Z_MIN = BUMP_GROOVE_Z_MAX - (SNAP_PROTRUSION + 0.1)  # 5.4
+POCKET_Z_MAX = BUMP_GROOVE_Z_MIN                         # 5.4 — pocket meets groove
+POCKET_Z_MIN = POCKET_Z_MAX - SNAP_POCKET_EXTRA_DEPTH - 0.05     # ~4.95
 
 # Screw holes through base plate — two, flanking the rail
 SCREW_HOLE_DIAMETER = 4.0
@@ -264,70 +274,72 @@ class TestPieceB:
     def test_frame_is_solid_outside_channel(self, tolerance_bodies):
         """The frame walls, outside all cuts, contain material."""
         _, piece_b = tolerance_bodies
-        # Points well outside channel in Y, well above channel ceiling,
-        # far from snap pocket, inside frame Y=[5.75, 24.75]
+        # Frame Y range is [5.75, 24.75]. Piece B prints channel-up, so
+        # the solid roof sits at Z∈[0, ~5] and the channel cavity lives
+        # above it — probes need to avoid the channel cavity at center Y.
         probes = [
             (0.0, 6.5, 5.0),                          # -Y wall, mid height
             (0.0, 24.0, 5.0),                         # +Y wall, mid height
-            (-20.0, PIECE_OFFSET_Y, 10.5),            # above groove, away from snap
-            (10.0, PIECE_OFFSET_Y, 10.5),             # above groove, away from snap
-            (0.0, 6.5, 10.0),                         # upper corner
+            (-20.0, PIECE_OFFSET_Y, 2.5),             # roof interior, away from snap
+            (10.0, PIECE_OFFSET_Y, 2.5),              # roof interior, away from snap
+            (0.0, 6.5, 10.0),                         # -Y wall at channel height
         ]
         assert_solid(piece_b, probes, "frame interior")
 
-    def test_channel_floor_is_empty(self, tolerance_bodies):
-        """Channel cavity is cut along the full length at the floor level."""
+    def test_channel_interior_is_empty(self, tolerance_bodies):
+        """Channel cavity is cut along the full length at mid-channel Z."""
         _, piece_b = tolerance_bodies
-        z_floor = 1.0  # well inside channel Z=[0, 7.3]
+        z_channel = (CHANNEL_WIDE_TOP_Z + CHANNEL_NARROW_BASE_Z) / 2  # ~10.15
         probes = [
-            (-25.0, PIECE_OFFSET_Y, z_floor),
-            (-10.0, PIECE_OFFSET_Y, z_floor),
-            (0.0, PIECE_OFFSET_Y, z_floor),
-            (10.0, PIECE_OFFSET_Y, z_floor),
-            (20.0, PIECE_OFFSET_Y, z_floor),          # clear of end wall at X=28
+            (-25.0, PIECE_OFFSET_Y, z_channel),
+            (-10.0, PIECE_OFFSET_Y, z_channel),
+            (0.0, PIECE_OFFSET_Y, z_channel),
+            (10.0, PIECE_OFFSET_Y, z_channel),
+            (20.0, PIECE_OFFSET_Y, z_channel),        # clear of end wall at X=28
         ]
-        assert_empty(piece_b, probes, "channel floor")
+        assert_empty(piece_b, probes, "channel interior")
 
-    def test_channel_ceiling_is_wider_than_floor(self, tolerance_bodies):
-        """Taper check — channel half-width ≈5.5 at ceiling but only ≈4.7 at floor.
+    def test_channel_wide_top_is_wider_than_narrow_base(self, tolerance_bodies):
+        """Taper check — channel half-width ≈5.7 at wide top vs ≈4.7 at narrow base.
 
-        Probes at dy=5.0 from centerline: empty near the ceiling (inside
-        the widened top), solid near the floor (outside the narrow base,
-        inside the surrounding frame). This pins the channel taper.
+        Probes at dy=5.0 from centerline: empty just inside the wide top
+        (inside the widened region), solid just inside the narrow base
+        end (outside the narrow region, inside the surrounding frame).
+        This pins the channel taper.
         """
         _, piece_b = tolerance_bodies
         dy = 5.0  # between CHANNEL_BASE_WIDTH/2=4.7 and CHANNEL_TOP_WIDTH/2=5.7
         x = 0.0  # middle of channel, far from snap & end wall
 
-        # Near the ceiling — inside the widened channel
+        # Just inside the wide top — inside the widened channel region
         empty_probes = [
-            (x, PIECE_OFFSET_Y + dy, CHANNEL_CEILING_Z - 0.2),
-            (x, PIECE_OFFSET_Y - dy, CHANNEL_CEILING_Z - 0.2),
+            (x, PIECE_OFFSET_Y + dy, CHANNEL_WIDE_TOP_Z + 0.2),
+            (x, PIECE_OFFSET_Y - dy, CHANNEL_WIDE_TOP_Z + 0.2),
         ]
         assert_empty(piece_b, empty_probes, "channel widened top")
 
-        # Near the floor — outside the narrow channel base, still inside frame
+        # Just inside the narrow base end — outside the narrow region, inside frame
         solid_probes = [
-            (x, PIECE_OFFSET_Y + dy, 0.5),
-            (x, PIECE_OFFSET_Y - dy, 0.5),
+            (x, PIECE_OFFSET_Y + dy, CHANNEL_NARROW_BASE_Z - 0.5),
+            (x, PIECE_OFFSET_Y - dy, CHANNEL_NARROW_BASE_Z - 0.5),
         ]
         assert_solid(piece_b, solid_probes, "channel narrow base surrounds")
 
     def test_bump_groove_runs_full_length(self, tolerance_bodies):
         """Groove is empty at every probe X along the length."""
         _, piece_b = tolerance_bodies
-        z_groove = (BUMP_GROOVE_Z_MIN + BUMP_GROOVE_Z_MAX) / 2  # 7.85
+        z_groove = (BUMP_GROOVE_Z_MIN + BUMP_GROOVE_Z_MAX) / 2  # ~5.95
         probes = [(x, PIECE_OFFSET_Y, z_groove) for x in [-25.0, -10.0, 0.0, 10.0, 20.0]]
         assert_empty(piece_b, probes, "bump groove full length")
 
     def test_snap_pocket_deeper_than_groove(self, tolerance_bodies):
-        """Above the groove, there is pocket material only at SNAP_X.
+        """Below the groove there is pocket material only at SNAP_X.
 
         This is the snap click feature — a deeper recess at a single X.
         Everywhere else at the same Z level should be solid frame.
         """
         _, piece_b = tolerance_bodies
-        z_pocket = BUMP_GROOVE_Z_MAX + SNAP_POCKET_EXTRA_DEPTH / 2  # 8.6
+        z_pocket = (POCKET_Z_MIN + POCKET_Z_MAX) / 2  # ~5.175
 
         # Inside pocket at SNAP_X
         assert_empty(
@@ -344,7 +356,7 @@ class TestPieceB:
                 (0.0, PIECE_OFFSET_Y, z_pocket),
                 (10.0, PIECE_OFFSET_Y, z_pocket),
             ],
-            "frame above groove away from SNAP_X",
+            "frame below groove away from SNAP_X",
         )
 
     def test_end_wall_has_dovetail_hole(self, tolerance_bodies):
@@ -352,17 +364,18 @@ class TestPieceB:
         _, piece_b = tolerance_bodies
         x_end_wall = 29.0  # inside END_WALL region X=[28, 30]
 
-        # Inside the dovetail hole — empty
+        # Inside the dovetail hole — empty (probe at mid-channel height)
+        z_channel = (CHANNEL_WIDE_TOP_Z + CHANNEL_NARROW_BASE_Z) / 2  # ~10.15
         assert_empty(
             piece_b,
-            [(x_end_wall, PIECE_OFFSET_Y, 1.0)],  # channel floor level
+            [(x_end_wall, PIECE_OFFSET_Y, z_channel)],
             "end wall dovetail opening",
         )
 
         # Outside the hole (in Y, inside frame) — solid
         assert_solid(
             piece_b,
-            [(x_end_wall, 6.5, 5.0)],  # -Y side of frame, mid height
+            [(x_end_wall, 6.5, 5.0)],  # -Y side of frame, in the roof region
             "end wall solid material",
         )
 
@@ -388,28 +401,28 @@ class TestRailFitsInChannel:
     RAIL_BASE_HALF = RAIL_BASE_WIDTH / 2  # 4.5
     RAIL_TOP_HALF = RAIL_TOP_WIDTH / 2    # 5.5
 
-    # Channel centerline coordinates in piece B:
-    #   Y = +PIECE_OFFSET_Y, Z = 0 at the channel floor, up to CHANNEL_HEIGHT
-    # Rail profile points (relative to rail base): (dy, dz)
-    #   Bottom outer corners: (±RAIL_BASE_HALF, 0)  → near channel floor
-    #   Top outer corners:    (±RAIL_TOP_HALF, RAIL_HEIGHT) → near ceiling
+    # Channel centerline in piece B (printed channel-up):
+    #   Y = +PIECE_OFFSET_Y, narrow base at Z=CHANNEL_NARROW_BASE_Z (top of
+    #   the print, opening to air), wide top at Z=CHANNEL_WIDE_TOP_Z (lower).
+    #   The rail's narrow base corners ride near the narrow end; its wider
+    #   top corners ride near the wide end.
 
-    def test_rail_bottom_corners_fit_in_channel_floor(self, tolerance_bodies):
-        """Rail's narrow base corners are inside the channel base width."""
+    def test_rail_bottom_corners_fit_in_channel_narrow_end(self, tolerance_bodies):
+        """Rail's narrow base corners are inside the channel's narrow end."""
         _, piece_b = tolerance_bodies
-        z = 0.1  # just above channel floor
+        z = CHANNEL_NARROW_BASE_Z - 0.1  # just inside the narrow opening
         probes = []
         for x in [-20.0, 0.0, 20.0]:  # away from snap and end wall
             probes.append((x, PIECE_OFFSET_Y + self.RAIL_BASE_HALF, z))
             probes.append((x, PIECE_OFFSET_Y - self.RAIL_BASE_HALF, z))
-        assert_empty(piece_b, probes, "rail base corners fit in channel base")
+        assert_empty(piece_b, probes, "rail base corners fit in channel narrow end")
 
-    def test_rail_top_corners_fit_in_channel_ceiling(self, tolerance_bodies):
-        """Rail's wider top corners are inside the channel widened top."""
+    def test_rail_top_corners_fit_in_channel_wide_end(self, tolerance_bodies):
+        """Rail's wider top corners are inside the channel's widened end."""
         _, piece_b = tolerance_bodies
-        z = CHANNEL_HEIGHT - 0.3  # just below channel ceiling
+        z = CHANNEL_WIDE_TOP_Z + 0.3  # just inside the widened end
         probes = []
         for x in [-20.0, 0.0, 20.0]:
             probes.append((x, PIECE_OFFSET_Y + self.RAIL_TOP_HALF, z))
             probes.append((x, PIECE_OFFSET_Y - self.RAIL_TOP_HALF, z))
-        assert_empty(piece_b, probes, "rail top corners fit in channel top")
+        assert_empty(piece_b, probes, "rail top corners fit in channel wide end")
