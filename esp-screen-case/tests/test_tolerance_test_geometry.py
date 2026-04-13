@@ -90,15 +90,15 @@ SCREW_Y_POS = -PIECE_OFFSET_Y + SCREW_Y_OFFSET  # -5.5
 # theoretical dovetail volume (9554.60 mm³ for piece A) to within
 # tessellation noise.
 #
-# To recapture: uv run python esp-screen-case/tests/capture_tolerance_golden.py
-GOLDEN_TOTAL_VOLUME = 19960.9431
+# To recapture: `make update-goldens`
+GOLDEN_TOTAL_VOLUME = 19960.9743
 GOLDEN_TOTAL_BBOX = (60.0000, 55.0000, 13.8000)
 
-GOLDEN_A_VOLUME = 9554.6018
+GOLDEN_A_VOLUME = 9554.6330
 GOLDEN_A_BBOX = (60.0000, 30.0000, 11.0000)
 GOLDEN_A_CENTROID_Y = -15.2500
 
-GOLDEN_B_VOLUME = 10406.3414
+GOLDEN_B_VOLUME = 10406.3412
 GOLDEN_B_BBOX = (60.0000, 19.0000, 13.8000)
 GOLDEN_B_CENTROID_Y = 15.2500
 
