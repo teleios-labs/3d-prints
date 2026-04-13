@@ -65,8 +65,13 @@ SNAP_POCKET_RAMP = 2.0
 SNAP_POCKET_EXTRA_DEPTH = 0.4
 BUMP_GROOVE_Z_MAX = CHANNEL_WIDE_TOP_Z                   # 6.5 — groove ceiling (toward channel)
 BUMP_GROOVE_Z_MIN = BUMP_GROOVE_Z_MAX - (SNAP_PROTRUSION + 0.1)  # 5.4
-POCKET_Z_MAX = BUMP_GROOVE_Z_MIN                         # 5.4 — pocket meets groove
-POCKET_Z_MIN = POCKET_Z_MAX - SNAP_POCKET_EXTRA_DEPTH - 0.05     # ~4.95
+POCKET_Z_MAX = BUMP_GROOVE_Z_MIN                         # 5.4 — pocket meets groove (shallowest)
+POCKET_Z_MIN = POCKET_Z_MAX - SNAP_POCKET_EXTRA_DEPTH    # 5.0 — deepest pocket level
+
+# These Z bounds are the *logical* pocket range. Real geometry has
+# tiny overshoots (~0.05mm) at the boundaries for OCCT boolean
+# robustness — probes below pick Z values with ≥0.1mm buffer so they
+# don't care about those internals.
 
 # Screw holes through base plate — two, flanking the rail
 SCREW_HOLE_DIAMETER = 4.0
@@ -364,29 +369,30 @@ class TestPieceB:
         """Pocket ramps blend linearly from groove depth at the outer edge
         to full pocket depth where they meet the catch.
 
-        Probe 1: mid-ramp at the deepest pocket Z should be solid — at
-        half the ramp length the cut is only half as deep, so the
-        deepest slice is still uncut roof material. A regression that
-        made the pocket a flat-bottomed box would see this as empty.
+        At half the ramp length the cut only reaches half the full
+        pocket depth. So at mid-ramp X:
+        - Below half-depth: still uncut roof material (solid)
+        - Above half-depth: inside the partial cut (empty)
 
-        Probe 2: mid-ramp at a Z ~75% of the way down should be empty —
-        the partial cut reaches here. Catches the opposite regression
-        where the ramp disappears entirely.
+        A regression that made the pocket a flat-bottomed box would see
+        the "below half-depth" probe as empty. The opposite regression
+        (no ramp at all) would see the "above half-depth" probe as solid.
         """
         _, piece_b = tolerance_bodies
 
         mid_ramp_x = SNAP_X - SNAP_CATCH_LENGTH / 2 - SNAP_POCKET_RAMP / 2  # 24.5
-        deep_z = POCKET_Z_MIN + 0.05     # near the deepest pocket level
-        partial_z = POCKET_Z_MAX - 0.05  # near the shallow end of the pocket
+        half_depth_z = (POCKET_Z_MIN + POCKET_Z_MAX) / 2  # 5.2
+        below_half = half_depth_z - 0.1   # 5.1 — mid-ramp has NOT cut this deep
+        above_half = half_depth_z + 0.1   # 5.3 — mid-ramp HAS cut this deep
 
         assert_solid(
             piece_b,
-            [(mid_ramp_x, PIECE_OFFSET_Y, deep_z)],
+            [(mid_ramp_x, PIECE_OFFSET_Y, below_half)],
             "ramp not full-depth at mid-length",
         )
         assert_empty(
             piece_b,
-            [(mid_ramp_x, PIECE_OFFSET_Y, partial_z)],
+            [(mid_ramp_x, PIECE_OFFSET_Y, above_half)],
             "ramp reaches partial depth at mid-length",
         )
 
