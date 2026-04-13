@@ -45,43 +45,29 @@ SCREW_SPACING_Y = BRACKET_HUB_HEIGHT - 2 * BRACKET_WALL - SCREW_HOLE_DIAMETER
 
 def build() -> Part:
     """Build the wall bracket."""
+    left_arm_x = -(BRACKET_HUB_WIDTH / 2 + BRACKET_ARM_LENGTH / 2)
+    right_arm_x = BRACKET_HUB_WIDTH / 2 + BRACKET_ARM_LENGTH / 2
+    rail_z = BRACKET_THICKNESS / 2 + RAIL_DEPTH / 2
+    snap_x = right_arm_x + BRACKET_ARM_LENGTH / 2 - SNAP_CATCH_LENGTH / 2
+    snap_z = BRACKET_THICKNESS / 2 + RAIL_DEPTH + SNAP_PROTRUSION / 2
+
     with BuildPart() as bracket:
-        # --- Central hub (flat plate) ---
+        # Central hub (flat plate)
         Box(BRACKET_HUB_WIDTH, BRACKET_HUB_HEIGHT, BRACKET_THICKNESS)
 
-        # --- Left arm base ---
-        left_arm_x = -(BRACKET_HUB_WIDTH / 2 + BRACKET_ARM_LENGTH / 2)
-        with BuildPart(Pos(left_arm_x, 0, 0), mode=Mode.ADD):
+        # Left + right arm bases
+        with Locations(Pos(left_arm_x, 0, 0), Pos(right_arm_x, 0, 0)):
             Box(BRACKET_ARM_LENGTH, ARM_WIDTH, BRACKET_THICKNESS)
 
-        # --- Left arm rail (raised profile) ---
-        with BuildPart(
-            Pos(left_arm_x, 0, BRACKET_THICKNESS / 2 + RAIL_DEPTH / 2),
-            mode=Mode.ADD,
-        ):
+        # Raised rail profiles on top of each arm
+        with Locations(Pos(left_arm_x, 0, rail_z), Pos(right_arm_x, 0, rail_z)):
             Box(BRACKET_ARM_LENGTH, RAIL_WIDTH, RAIL_DEPTH)
 
-        # --- Right arm base ---
-        right_arm_x = BRACKET_HUB_WIDTH / 2 + BRACKET_ARM_LENGTH / 2
-        with BuildPart(Pos(right_arm_x, 0, 0), mode=Mode.ADD):
-            Box(BRACKET_ARM_LENGTH, ARM_WIDTH, BRACKET_THICKNESS)
-
-        # --- Right arm rail (raised profile) ---
-        with BuildPart(
-            Pos(right_arm_x, 0, BRACKET_THICKNESS / 2 + RAIL_DEPTH / 2),
-            mode=Mode.ADD,
-        ):
-            Box(BRACKET_ARM_LENGTH, RAIL_WIDTH, RAIL_DEPTH)
-
-        # --- Snap detent on right arm tip ---
-        snap_x = right_arm_x + BRACKET_ARM_LENGTH / 2 - SNAP_CATCH_LENGTH / 2
-        with BuildPart(
-            Pos(snap_x, 0, BRACKET_THICKNESS / 2 + RAIL_DEPTH + SNAP_PROTRUSION / 2),
-            mode=Mode.ADD,
-        ):
+        # Snap detent on right arm tip
+        with Locations(Pos(snap_x, 0, snap_z)):
             Box(SNAP_CATCH_LENGTH, RAIL_WIDTH, SNAP_PROTRUSION)
 
-        # --- Screw holes through hub ---
+        # Screw holes through the hub
         screw_positions = [
             (SCREW_SPACING_X / 2, SCREW_SPACING_Y / 2),
             (-SCREW_SPACING_X / 2, SCREW_SPACING_Y / 2),
