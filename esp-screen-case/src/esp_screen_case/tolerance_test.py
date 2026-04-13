@@ -20,15 +20,18 @@ Slide direction: -X (open entry) ──────► +X (end stop + snap click
 """
 
 from build123d import (
+    Axis,
     Box,
     BuildPart,
     BuildSketch,
     Circle,
+    Location,
     Locations,
     Mode,
     Part,
     Plane,
     Pos,
+    add,
     extrude,
 )
 
@@ -96,9 +99,56 @@ GROOVE_TOP_Z = CHAN_HT + GROOVE_DEPTH          # ceiling level of the bump groov
 FRAME_HT = GROOVE_TOP_Z + SNAP_POCKET_EXTRA + ROOF_THICK
 
 
+def _build_piece_b() -> Part:
+    """Construct piece B at the origin in assembly orientation.
+
+    Built as a standalone `BuildPart` *outside* the main builder so its
+    internal ADD/SUBTRACT ops don't leak into the parent context. The
+    caller is responsible for any rotation and translation before adding
+    the result to the final assembly.
+    """
+    with BuildPart() as piece_b:
+        # Solid frame
+        with Locations(Pos(0, 0, FRAME_HT / 2)):
+            Box(LENGTH, FRAME_WIDTH, FRAME_HT)
+
+        # Dovetail channel — runs the full length (will be re-closed by end wall)
+        with Locations(Pos(0, 0, 0)):
+            DovetailChannel(LENGTH + 1, CHAN_BASE, CHAN_TOP, CHAN_HT)
+
+        # End wall at +X: re-fill the open end, then re-cut the dovetail
+        # opening through the wall so the rail profile can seat against it.
+        end_wall_x = LENGTH / 2 - END_WALL / 2
+        with Locations(Pos(end_wall_x, 0, FRAME_HT / 2)):
+            Box(END_WALL, FRAME_WIDTH, FRAME_HT)
+        with Locations(Pos(end_wall_x, 0, 0)):
+            DovetailChannel(END_WALL + 1, CHAN_BASE, CHAN_TOP, CHAN_HT)
+
+        # Bump groove — shallow slot in the channel ceiling along full length
+        with Locations(Pos(0, 0, CHAN_HT + GROOVE_DEPTH / 2)):
+            Box(LENGTH + 2, GROOVE_WIDTH, GROOVE_DEPTH, mode=Mode.SUBTRACT)
+
+        # Snap pocket — deeper recess with ramps, carved into the groove ceiling
+        with Locations(Pos(SNAP_X, 0, GROOVE_TOP_Z)):
+            SnapPocket(
+                catch_length=SNAP_CATCH_LENGTH,
+                ramp_length=SNAP_POCKET_RAMP,
+                width=GROOVE_WIDTH,
+                extra_depth=SNAP_POCKET_EXTRA,
+            )
+    return piece_b.part
+
+
 def build() -> Part:
     """Build dovetail slide test with snap detent."""
     piece_offset = max(BASE_WIDTH, FRAME_WIDTH) / 2 + SCORE_GAP / 2
+
+    # Piece B is built first, outside the main builder, so it can be
+    # flipped (channel-up for print quality) without leaking primitives
+    # into the outer context — nested BuildPart doesn't isolate.
+    flipped_piece_b = _build_piece_b().rotate(Axis.X, 180).moved(
+        Location((0, piece_offset, FRAME_HT))
+    )
 
     with BuildPart() as result:
         # ============================================
@@ -134,36 +184,14 @@ def build() -> Part:
             )
 
         # ============================================
-        # PIECE B — dovetail channel block
+        # PIECE B — dovetail channel block (flipped for print quality)
+        #
+        # Piece B prints channel-up: the solid "roof" lands on the build
+        # plate and the channel's wide top — the surface the rail's
+        # undercut actually contacts — prints as near-vertical walls
+        # instead of an ~11mm-wide bridge. Same win at the groove and
+        # snap pocket. Geometry was built at origin and flipped above.
         # ============================================
-
-        # Solid frame
-        with Locations(Pos(0, piece_offset, FRAME_HT / 2)):
-            Box(LENGTH, FRAME_WIDTH, FRAME_HT)
-
-        # Dovetail channel — runs the full length (will be re-closed by end wall)
-        with Locations(Pos(0, piece_offset, 0)):
-            DovetailChannel(LENGTH + 1, CHAN_BASE, CHAN_TOP, CHAN_HT)
-
-        # End wall at +X: re-fill the open end, then re-cut the dovetail
-        # opening through the wall so the rail profile can seat against it.
-        end_wall_x = LENGTH / 2 - END_WALL / 2
-        with Locations(Pos(end_wall_x, piece_offset, FRAME_HT / 2)):
-            Box(END_WALL, FRAME_WIDTH, FRAME_HT)
-        with Locations(Pos(end_wall_x, piece_offset, 0)):
-            DovetailChannel(END_WALL + 1, CHAN_BASE, CHAN_TOP, CHAN_HT)
-
-        # Bump groove — shallow slot in the channel ceiling along full length
-        with Locations(Pos(0, piece_offset, CHAN_HT + GROOVE_DEPTH / 2)):
-            Box(LENGTH + 2, GROOVE_WIDTH, GROOVE_DEPTH, mode=Mode.SUBTRACT)
-
-        # Snap pocket — deeper recess with ramps, carved into the groove ceiling
-        with Locations(Pos(SNAP_X, piece_offset, GROOVE_TOP_Z)):
-            SnapPocket(
-                catch_length=SNAP_CATCH_LENGTH,
-                ramp_length=SNAP_POCKET_RAMP,
-                width=GROOVE_WIDTH,
-                extra_depth=SNAP_POCKET_EXTRA,
-            )
+        add(flipped_piece_b)
 
     return result.part
