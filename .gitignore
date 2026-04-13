@@ -18,6 +18,9 @@ output/
 # Large reference CAD files (kept out-of-tree)
 esp-screen-case/reference/
 
+# Personal/third-party model scratch area (not part of this repo)
+docs/
+
 # OS
 .DS_Store
 
