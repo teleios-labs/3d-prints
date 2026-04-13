@@ -90,10 +90,10 @@ SNAP_X = LENGTH / 2 - SNAP_CATCH_LENGTH / 2 - 3.0
 
 # --- Bump / groove ---
 BUMP_WIDTH = DOVE_TOP - 1.0                    # slightly narrower than rail top
-# Groove is as wide as the channel ceiling (plus a hair for boolean
-# robustness) so it doesn't leave overhanging shelves inside the channel.
-# The bump still gets its clearance via BUMP_WIDTH being narrower.
-GROOVE_WIDTH = CHAN_TOP + 0.2
+# Groove is exactly as wide as the channel ceiling so the cavity walls
+# stay flush — no inward lip at the channel/groove transition. (The
+# bump still gets its Y clearance via BUMP_WIDTH being narrower.)
+GROOVE_WIDTH = CHAN_TOP
 GROOVE_DEPTH = SNAP_PROTRUSION + 0.1           # slight vertical clearance above bump
 GROOVE_TOP_Z = CHAN_HT + GROOVE_DEPTH          # ceiling level of the bump groove
 FRAME_HT = GROOVE_TOP_Z + SNAP_POCKET_EXTRA + ROOF_THICK
