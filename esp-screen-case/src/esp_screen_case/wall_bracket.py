@@ -85,7 +85,9 @@ def build() -> Part:
                 rotation=(0, 0, 90),
             )
 
-        # M3 drywall anchor holes through the hub.
+        # M3 drywall anchor holes through the hub. The 0.1mm extra on
+        # the extrude depth is an OCCT boolean-robustness overshoot so
+        # the cut punches cleanly through the back face.
         with BuildSketch(Plane.XY.offset(BRACKET_HUB_Z)):
             with Locations(
                 (0.0, top_anchor_y),
