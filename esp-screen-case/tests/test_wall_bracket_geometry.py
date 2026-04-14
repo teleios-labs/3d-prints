@@ -53,9 +53,9 @@ ANCHOR_HOLE_BOT_Y = (SHELF_Y_MIN + SHELF_Y_MAX) / 2 # -26.0
 # Golden scalars — captured via `make update-goldens`. Placeholders
 # until the first capture run; the capture script overwrites these
 # lines in place.
-GOLDEN_VOLUME = 0.0
-GOLDEN_BBOX = (0.0, 0.0, 0.0)
-GOLDEN_CENTROID = (0.0, 0.0, 0.0)
+GOLDEN_VOLUME = 11624.3307
+GOLDEN_BBOX = (30.0000, 67.0000, 11.0000)
+GOLDEN_CENTROID = (-0.0000, 0.9238, 3.5087)
 
 # Tolerances
 VOL_TOL = 1.0   # mm³ STL tessellation noise
