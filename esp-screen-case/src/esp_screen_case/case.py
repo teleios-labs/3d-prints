@@ -44,7 +44,6 @@ from esp_screen_case.dimensions import (
     BOARD_HEIGHT,
     BOARD_HOLE_EDGE_OFFSET,
     BOARD_LENGTH,
-    BRACKET_HUB_Y,
     BRACKET_RAIL_LENGTH,
     CASE_BACK_PLATE_ABOVE_CHANNEL,
     CASE_BOARD_CLEARANCE,
@@ -83,11 +82,17 @@ STANDOFF_X = BOARD_LENGTH / 2 - BOARD_HOLE_EDGE_OFFSET
 STANDOFF_Y = BOARD_HEIGHT / 2 - BOARD_HOLE_EDGE_OFFSET
 
 # --- Bracket recess + channel Y placement ---
-# Channel's bottom edge is flush with the recess's bottom edge, so the
-# channel is open at that point when the case is lowered onto the rail.
-RECESS_Y_MIN = -CASE_BRACKET_RECESS_Y / 2
-CHANNEL_Y_MIN = RECESS_Y_MIN
-CHANNEL_Y_CENTER = CHANNEL_Y_MIN + BRACKET_RAIL_LENGTH / 2
+# Both the recess and channel have their bottom edges at the case's
+# bottom exterior edge. This creates an opening through which the
+# upper hub can slide UP into the recess as the case descends onto the
+# bracket. The recess extends upward 58mm (= rail + lead-in); the
+# channel inside the recess extends upward 50mm (= rail length).
+RECESS_Y_MIN = -EXTERIOR_Y / 2                                       # -56.33
+RECESS_Y_MAX = RECESS_Y_MIN + CASE_BRACKET_RECESS_Y                  # +1.67
+RECESS_Y_CENTER = (RECESS_Y_MIN + RECESS_Y_MAX) / 2                  # -27.33
+
+CHANNEL_Y_MIN = RECESS_Y_MIN                                         # -56.33
+CHANNEL_Y_CENTER = CHANNEL_Y_MIN + BRACKET_RAIL_LENGTH / 2           # -31.33
 
 # --- USB-C cutout (right wall, at PCB level) ---
 USB_Y = USB_CENTER_Y_FROM_BOTTOM - BOARD_HEIGHT / 2   # -2.18 from case center
@@ -116,25 +121,29 @@ def build() -> Part:
         # then added here so nested-BuildPart side effects don't leak.
         add(_build_shell())
 
-        # Bracket recess: pocket from z=0 to z=Z_RECESS_FLOOR, XY
-        # footprint matches the hub.
-        with Locations(Pos(0, 0, Z_RECESS_FLOOR / 2)):
+        # Bracket recess: pocket from z=0 to z=Z_RECESS_FLOOR. The recess
+        # is positioned with its bottom edge at the case's bottom exterior
+        # edge, creating an opening through which the bracket's upper hub
+        # slides UP into the recess as the case descends from above.
+        # +0.1mm on Y and Z is OCCT boolean overshoot.
+        with Locations(
+            Pos(0, RECESS_Y_CENTER - 0.05, Z_RECESS_FLOOR / 2)
+        ):
             Box(
                 CASE_BRACKET_RECESS_X,
-                CASE_BRACKET_RECESS_Y,
+                CASE_BRACKET_RECESS_Y + 0.1,
                 Z_RECESS_FLOOR + 0.1,
                 mode=Mode.SUBTRACT,
             )
 
-        # Dovetail channel cut deeper into the case back. rotation=(0,0,90)
-        # aligns the length axis with Y; the primitive's narrow base at its
-        # local Z=0 lands at world Z_RECESS_FLOOR=4, and the wide top at
-        # world Z_RECESS_FLOOR + CHANNEL_DEPTH = 11.3. The 0.3mm extra over
-        # RAIL_DEPTH gives the rail top vertical slop so it doesn't bind
-        # against the cavity ceiling on slight print overextrusion.
-        with Locations(Pos(0, CHANNEL_Y_CENTER, Z_RECESS_FLOOR)):
+        # Dovetail channel cut deeper into the case back. The channel
+        # opens at the case bottom (same edge as the recess). Extend
+        # the length by 0.1mm past the case bottom for clean OCCT
+        # subtraction at the coincident bottom-face boundary.
+        channel_center_extended = CHANNEL_Y_CENTER - 0.05
+        with Locations(Pos(0, channel_center_extended, Z_RECESS_FLOOR)):
             DovetailChannel(
-                length=BRACKET_RAIL_LENGTH,
+                length=BRACKET_RAIL_LENGTH + 0.1,
                 base_width=CHANNEL_BASE_WIDTH,
                 top_width=CHANNEL_TOP_WIDTH,
                 height=CHANNEL_DEPTH,

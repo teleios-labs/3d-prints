@@ -73,9 +73,12 @@ CASE_STANDOFF_OD = 6.0
 CASE_STANDOFF_PILOT_DIAMETER = 2.5   # self-tapping M3 into plastic
 CASE_STANDOFF_HEIGHT = BACK_COMPONENT_HEIGHT + 1.0  # 8.0 — clears back components + 1mm
 
-# Bracket recess (pocket in the case back that accepts the hub flush)
+# Bracket recess (pocket in the case back that accepts the hub flush).
+# The recess only covers the portion of the hub that's INSIDE the case
+# when seated: the upper hub (rail + lead-in strip). The shelf flange is
+# below the case, supporting the case bottom on its overhangs.
 CASE_BRACKET_RECESS_X = BRACKET_HUB_X
-CASE_BRACKET_RECESS_Y = BRACKET_HUB_Y
+CASE_BRACKET_RECESS_Y = BRACKET_RAIL_LENGTH + BRACKET_RAIL_LEAD_IN
 CASE_BRACKET_RECESS_DEPTH = BRACKET_HUB_Z
 
 # --- Printer tolerances ---

@@ -31,21 +31,22 @@ Z_INTERIOR_FLOOR = Z_CHANNEL_FLOOR + 3.0      # 14.3
 Z_STANDOFF_TOP = Z_INTERIOR_FLOOR + 8.0       # 22.3 — PCB back rests here
 Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4       # 31.3 — flush with display glass
 
-# Bracket recess
+# Bracket recess — opens at the case's bottom exterior edge so the
+# bracket hub can slide up into it from below.
 RECESS_X = 30.0
-RECESS_Y = 67.0  # matches BRACKET_HUB_Y
+RECESS_Y = 58.0  # rail length 50 + lead-in 8
 
 # Dovetail channel (cut from recess floor)
 CHANNEL_BASE_WIDTH = 10.2
 CHANNEL_TOP_WIDTH = 11.2
 CHANNEL_LENGTH = 50.0
-# Channel runs vertically along case short axis. The recess is centered
-# on the case; the channel is positioned inside the recess so the
-# bottom of the channel opens at the recess's bottom edge.
-RECESS_Y_MIN = -RECESS_Y / 2
-RECESS_Y_MAX = RECESS_Y / 2
-CHANNEL_Y_MIN = RECESS_Y_MIN
-CHANNEL_Y_MAX = CHANNEL_Y_MIN + CHANNEL_LENGTH
+
+# Both recess and channel have their bottom edges at the case bottom.
+RECESS_Y_MIN = -EXTERIOR_Y / 2                       # -56.33
+RECESS_Y_MAX = RECESS_Y_MIN + RECESS_Y               # +1.67
+RECESS_Y_CENTER = (RECESS_Y_MIN + RECESS_Y_MAX) / 2  # -27.33
+CHANNEL_Y_MIN = RECESS_Y_MIN                         # -56.33
+CHANNEL_Y_MAX = CHANNEL_Y_MIN + CHANNEL_LENGTH       # -6.33
 
 # Standoffs — 4 corners, 3.2mm from each interior wall
 HOLE_OFFSET = 3.2
@@ -60,7 +61,7 @@ STANDOFF_PILOT_DIAMETER = 2.5
 USB_CENTER_Y = 52.0 - BOARD_Y / 2  # -2.18
 
 # Golden placeholders
-GOLDEN_VOLUME = 307673.2512
+GOLDEN_VOLUME = 308766.7509
 GOLDEN_BBOX = (185.5600, 112.6600, 31.3000)
 
 VOL_TOL = 5.0
@@ -106,24 +107,38 @@ class TestGoldenScalars:
 
 class TestBackPlateAndRecess:
     def test_back_plate_is_solid_outside_recess(self, case_mesh):
-        """Back plate material exists where the recess isn't."""
+        """Back plate material exists where the recess isn't.
+
+        The recess now spans Y=[-56.33, +1.67] (bottom-aligned) and
+        X=[-15, +15]. Probes outside these ranges should land in solid
+        back plate material.
+        """
         z = 2.0
         probes = [
+            # Near left wall (outside recess X)
             (-EXTERIOR_X / 2 + 5.0, 0.0, z),
+            # Near right wall (outside recess X)
             (EXTERIOR_X / 2 - 5.0, 0.0, z),
-            (0.0, -EXTERIOR_Y / 2 + 5.0, z),
-            (0.0, EXTERIOR_Y / 2 - 5.0, z),
+            # Above the recess (Y > RECESS_Y_MAX = +1.67)
+            (0.0, 30.0, z),
+            # Outside the recess X footprint but inside the recess Y range:
+            # X=25 > 15 (outside recess X), Y=-30 inside recess Y range
+            (25.0, -30.0, z),
         ]
         assert_solid(case_mesh, probes, "back plate outside recess")
 
     def test_recess_is_empty(self, case_mesh):
         """Bracket recess pocket is empty from z=0 to z=4, inside its XY footprint."""
         z = 2.0
+        # Recess X=[-15, +15], Y=[-56.33, +1.67]. Probes inside this
+        # footprint but avoiding the channel X extent (~[-5.6, +5.6])
+        # which is also empty for a different reason.
         probes = [
-            (-10.0, 0.0, z),
-            (10.0, 0.0, z),
-            (-10.0, -15.0, z),
-            (10.0, 15.0, z),
+            (-10.0, -10.0, z),
+            (10.0, -10.0, z),
+            (-10.0, -40.0, z),
+            (10.0, -40.0, z),
+            (0.0, -50.0, z),   # near the case bottom, still inside recess
         ]
         assert_empty(case_mesh, probes, "bracket recess pocket")
 
