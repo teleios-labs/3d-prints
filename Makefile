@@ -19,6 +19,8 @@ test:
 
 update-goldens:
 	uv run python esp-screen-case/tests/capture_tolerance_golden.py --write
+	uv run python esp-screen-case/tests/capture_wall_bracket_golden.py --write
+	uv run python esp-screen-case/tests/capture_case_golden.py --write
 
 clean:
 	rm -rf output
