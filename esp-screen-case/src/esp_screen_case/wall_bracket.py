@@ -1,18 +1,32 @@
-"""Hidden wall bracket for CrowPanel 7" — mounts to drywall, shell slides on horizontally.
+"""Wall bracket with a vertical drop-in dovetail rail + solid shelf stop.
 
-Design:
-- Central hub with 4x screw holes for drywall anchors
-- Two horizontal arms extending left and right (rail profile)
-- Shell slides on from left side, snap detent locks at the right end
-- Entire bracket hides behind the panel — invisible when mounted
+Geometry overview (front view, user facing the wall):
 
-Orientation: print flat (arms in XY plane), mount with arms horizontal.
-The shell slides onto the arms from the left (entry side) and clicks
-past the snap detent on the right (locking side).
+    ┌─────────────┐  ← top of hub (y = +HUB_Y/2)
+    │   ╱─────╲   │
+    │  │ rail  │  │  ← dovetail rail, 50mm long, sits on top of the hub
+    │  │  ...  │  │     front face, protrudes +Z toward the user
+    │   ╲─────╱   │
+    ├─────────────┤  ← rail bottom / shelf top
+    │   SOLID     │
+    │   SHELF     │  ← bottom 15mm of hub, solid face
+    └─────────────┘  ← bottom of hub (y = -HUB_Y/2)
+
+Mount: 2× M3 drywall anchor holes through the hub. Top hole sits in
+the 2mm lead-in strip above the rail; bottom hole is centered in the
+shelf.
+
+Print orientation: flat on the bed, rail protruding +Z. Rail walls
+print as near-vertical perimeters — no bridging, same strategy as
+piece B in the tolerance test.
+
+Assembly motion: case channel is open at its bottom edge. Lower the
+case from above; the rail enters the channel, the dovetail undercut
+captures it, and the case's bottom edge lands flat on the shelf.
+Gravity alone retains it. No tools for attach or detach.
 """
 
 from build123d import (
-    Axis,
     Box,
     BuildPart,
     BuildSketch,
@@ -20,63 +34,64 @@ from build123d import (
     Locations,
     Mode,
     Part,
+    Plane,
     Pos,
     extrude,
 )
 
+from esp_screen_case.cadlib import DovetailRail
 from esp_screen_case.dimensions import (
-    BRACKET_ARM_LENGTH,
-    BRACKET_HUB_HEIGHT,
-    BRACKET_HUB_WIDTH,
-    BRACKET_THICKNESS,
-    BRACKET_WALL,
+    BRACKET_HUB_X,
+    BRACKET_HUB_Y,
+    BRACKET_HUB_Z,
+    BRACKET_RAIL_LEAD_IN,
+    BRACKET_RAIL_LENGTH,
+    BRACKET_SHELF_Y,
     RAIL_DEPTH,
+    RAIL_TOP_WIDTH,
     RAIL_WIDTH,
     SCREW_HOLE_DIAMETER,
-    SNAP_CATCH_LENGTH,
-    SNAP_PROTRUSION,
 )
-
-# Derived
-ARM_WIDTH = RAIL_WIDTH + 2 * BRACKET_WALL  # total arm width including walls around rail
-SCREW_SPACING_X = BRACKET_HUB_WIDTH - 2 * BRACKET_WALL - SCREW_HOLE_DIAMETER
-SCREW_SPACING_Y = BRACKET_HUB_HEIGHT - 2 * BRACKET_WALL - SCREW_HOLE_DIAMETER
 
 
 def build() -> Part:
     """Build the wall bracket."""
-    left_arm_x = -(BRACKET_HUB_WIDTH / 2 + BRACKET_ARM_LENGTH / 2)
-    right_arm_x = BRACKET_HUB_WIDTH / 2 + BRACKET_ARM_LENGTH / 2
-    rail_z = BRACKET_THICKNESS / 2 + RAIL_DEPTH / 2
-    snap_x = right_arm_x + BRACKET_ARM_LENGTH / 2 - SNAP_CATCH_LENGTH / 2
-    snap_z = BRACKET_THICKNESS / 2 + RAIL_DEPTH + SNAP_PROTRUSION / 2
+    # Rail occupies the top portion of the hub with a 2mm lead-in strip
+    # above it and a 15mm shelf below it.
+    rail_y_max = BRACKET_HUB_Y / 2 - BRACKET_RAIL_LEAD_IN
+    rail_y_min = rail_y_max - BRACKET_RAIL_LENGTH
+    rail_y_center = (rail_y_max + rail_y_min) / 2
+
+    # Anchor hole Y positions: top hole in the lead-in strip, bottom
+    # hole centered in the shelf.
+    top_anchor_y = BRACKET_HUB_Y / 2 - BRACKET_RAIL_LEAD_IN / 2
+    bot_anchor_y = -BRACKET_HUB_Y / 2 + BRACKET_SHELF_Y / 2
 
     with BuildPart() as bracket:
-        # Central hub (flat plate)
-        Box(BRACKET_HUB_WIDTH, BRACKET_HUB_HEIGHT, BRACKET_THICKNESS)
+        # Hub: centered in X and Y at the origin. Z = 0 at the wall face,
+        # Z = BRACKET_HUB_Z at the hub front face.
+        with Locations(Pos(0, 0, BRACKET_HUB_Z / 2)):
+            Box(BRACKET_HUB_X, BRACKET_HUB_Y, BRACKET_HUB_Z)
 
-        # Left + right arm bases
-        with Locations(Pos(left_arm_x, 0, 0), Pos(right_arm_x, 0, 0)):
-            Box(BRACKET_ARM_LENGTH, ARM_WIDTH, BRACKET_THICKNESS)
+        # Dovetail rail sitting on the hub front face, running along Y.
+        # rotation=(0, 0, 90) rotates the DovetailRail's length axis
+        # from X to Y; the narrow base lands at z=BRACKET_HUB_Z.
+        with Locations(Pos(0, rail_y_center, BRACKET_HUB_Z)):
+            DovetailRail(
+                length=BRACKET_RAIL_LENGTH,
+                base_width=RAIL_WIDTH,
+                top_width=RAIL_TOP_WIDTH,
+                height=RAIL_DEPTH,
+                rotation=(0, 0, 90),
+            )
 
-        # Raised rail profiles on top of each arm
-        with Locations(Pos(left_arm_x, 0, rail_z), Pos(right_arm_x, 0, rail_z)):
-            Box(BRACKET_ARM_LENGTH, RAIL_WIDTH, RAIL_DEPTH)
-
-        # Snap detent on right arm tip
-        with Locations(Pos(snap_x, 0, snap_z)):
-            Box(SNAP_CATCH_LENGTH, RAIL_WIDTH, SNAP_PROTRUSION)
-
-        # Screw holes through the hub
-        screw_positions = [
-            (SCREW_SPACING_X / 2, SCREW_SPACING_Y / 2),
-            (-SCREW_SPACING_X / 2, SCREW_SPACING_Y / 2),
-            (SCREW_SPACING_X / 2, -SCREW_SPACING_Y / 2),
-            (-SCREW_SPACING_X / 2, -SCREW_SPACING_Y / 2),
-        ]
-        with BuildSketch(bracket.faces().sort_by(Axis.Z)[-1]):
-            with Locations(screw_positions):
+        # M3 drywall anchor holes through the hub.
+        with BuildSketch(Plane.XY.offset(BRACKET_HUB_Z)):
+            with Locations(
+                (0.0, top_anchor_y),
+                (0.0, bot_anchor_y),
+            ):
                 Circle(SCREW_HOLE_DIAMETER / 2)
-        extrude(amount=-BRACKET_THICKNESS, mode=Mode.SUBTRACT)
+        extrude(amount=-BRACKET_HUB_Z - 0.1, mode=Mode.SUBTRACT)
 
     return bracket.part
