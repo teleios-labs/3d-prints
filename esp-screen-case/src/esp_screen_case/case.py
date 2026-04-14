@@ -56,8 +56,8 @@ from esp_screen_case.dimensions import (
     CASE_STANDOFF_PILOT_DIAMETER,
     CASE_WALL_THICKNESS,
     CHANNEL_BASE_WIDTH,
+    CHANNEL_DEPTH,
     CHANNEL_TOP_WIDTH,
-    RAIL_DEPTH,
     USB_CENTER_Y_FROM_BOTTOM,
     USB_CLEARANCE,
     USB_HEIGHT,
@@ -72,7 +72,7 @@ INTERIOR_Y = EXTERIOR_Y - 2 * CASE_WALL_THICKNESS
 
 # --- Z stack (z=0 at wall, increasing toward the user) ---
 Z_RECESS_FLOOR = CASE_BRACKET_RECESS_DEPTH                          # 4
-Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + RAIL_DEPTH                       # 11
+Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + CHANNEL_DEPTH                    # 11.3 (RAIL_DEPTH + 0.3 slop)
 Z_INTERIOR_FLOOR = Z_CHANNEL_FLOOR + CASE_BACK_PLATE_ABOVE_CHANNEL   # 14
 Z_STANDOFF_TOP = Z_INTERIOR_FLOOR + CASE_STANDOFF_HEIGHT             # 22
 # PCB is 1.6mm thick, display module protrudes 7.4mm in front of the PCB.
@@ -129,15 +129,15 @@ def build() -> Part:
         # Dovetail channel cut deeper into the case back. rotation=(0,0,90)
         # aligns the length axis with Y; the primitive's narrow base at its
         # local Z=0 lands at world Z_RECESS_FLOOR=4, and the wide top at
-        # world Z_RECESS_FLOOR + RAIL_DEPTH = 11. This matches the wall
-        # bracket's rail profile (narrow base on hub face, wide top at rail
-        # tip).
+        # world Z_RECESS_FLOOR + CHANNEL_DEPTH = 11.3. The 0.3mm extra over
+        # RAIL_DEPTH gives the rail top vertical slop so it doesn't bind
+        # against the cavity ceiling on slight print overextrusion.
         with Locations(Pos(0, CHANNEL_Y_CENTER, Z_RECESS_FLOOR)):
             DovetailChannel(
                 length=BRACKET_RAIL_LENGTH,
                 base_width=CHANNEL_BASE_WIDTH,
                 top_width=CHANNEL_TOP_WIDTH,
-                height=RAIL_DEPTH,
+                height=CHANNEL_DEPTH,
                 rotation=(0, 0, 90),
             )
 
@@ -157,11 +157,15 @@ def build() -> Part:
         ):
             Cylinder(radius=CASE_STANDOFF_OD / 2, height=CASE_STANDOFF_HEIGHT)
 
-        # Pilot holes: drilled 3mm deep from standoff top. The mid-standoff
-        # probe from the test is at Z_INTERIOR_FLOOR + 4.0 = 18.0; the
-        # standoff top is at 22.0, so a 3mm hole reaches to z=19.0, leaving
-        # the probe at z=18 below the hole in solid material. M3 self-tapping
-        # screws only need ~3mm of engagement in 6mm OD plastic posts.
+        # PILOT_DEPTH is a provisional value driven by the standoff probe
+        # at mid-height: a full-depth pilot hole (CASE_STANDOFF_HEIGHT + 0.1)
+        # would hollow out the probe point. 3mm is the minimum engagement
+        # for reliable M3 self-tapping in plastic (1.5-2x screw diameter is
+        # the comfortable range). Proper fix: move the
+        # `test_four_standoffs_present` probe off-axis by
+        # CASE_STANDOFF_PILOT_DIAMETER/2 + buffer so a full-depth hole
+        # becomes testable. Do that once print testing confirms which pilot
+        # depth actually holds screws.
         PILOT_DEPTH = 3.0
         with BuildSketch(Plane.XY.offset(Z_STANDOFF_TOP)):
             with Locations(*standoff_positions):

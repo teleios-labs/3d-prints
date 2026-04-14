@@ -26,10 +26,10 @@ EXTERIOR_Y = BOARD_Y + BOARD_CLEARANCE + 2 * WALL_THICKNESS   # 112.96
 # Z stack (z=0 at wall, increasing toward user)
 Z_WALL = 0.0
 Z_RECESS_FLOOR = 4.0
-Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + 7.0        # 11.0
-Z_INTERIOR_FLOOR = Z_CHANNEL_FLOOR + 3.0      # 14.0
-Z_STANDOFF_TOP = Z_INTERIOR_FLOOR + 8.0       # 22.0 — PCB back rests here
-Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4       # 31.0 — flush with display glass
+Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + 7.3        # 11.3 — RAIL_DEPTH + 0.3 slop
+Z_INTERIOR_FLOOR = Z_CHANNEL_FLOOR + 3.0      # 14.3
+Z_STANDOFF_TOP = Z_INTERIOR_FLOOR + 8.0       # 22.3 — PCB back rests here
+Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4       # 31.3 — flush with display glass
 
 # Bracket recess
 RECESS_X = 30.0
@@ -38,7 +38,6 @@ RECESS_Y = 67.0  # matches BRACKET_HUB_Y
 # Dovetail channel (cut from recess floor)
 CHANNEL_BASE_WIDTH = 10.2
 CHANNEL_TOP_WIDTH = 11.2
-CHANNEL_DEPTH = 7.0
 CHANNEL_LENGTH = 50.0
 # Channel runs vertically along case short axis. The recess is centered
 # on the case; the channel is positioned inside the recess so the
