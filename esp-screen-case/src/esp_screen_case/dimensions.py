@@ -49,11 +49,14 @@ CHANNEL_DEPTH = RAIL_DEPTH + 0.3                        # 7.3 vertical slop
 
 # --- Wall bracket ---
 BRACKET_HUB_X = 30.0           # width
-BRACKET_HUB_Y = 67.0           # height (50mm rail + 15mm shelf + 2mm top chamfer strip)
+BRACKET_HUB_Y = 73.0           # height (50mm rail + 15mm shelf + 8mm top lead-in strip)
 BRACKET_HUB_Z = 4.0            # thickness (wall to hub front)
 BRACKET_RAIL_LENGTH = 50.0     # dovetail rail length (along Y, vertical)
 BRACKET_SHELF_Y = 15.0         # solid shelf height (bottom of hub, no rail)
-BRACKET_RAIL_LEAD_IN = 2.0     # chamfer at the top of the rail
+BRACKET_RAIL_LEAD_IN = 8.0     # lead-in strip above the rail (hosts top anchor hole)
+BRACKET_SHELF_X = 40.0         # shelf flange X width (wider than the 30mm upper hub
+                                # so the case bottom lands on the 5mm 'ears' that
+                                # stick out beyond the bracket recess on the case)
 
 # --- Mounting hardware ---
 SCREW_HOLE_DIAMETER = 4.0      # M3 + clearance (drywall anchors + bracket)

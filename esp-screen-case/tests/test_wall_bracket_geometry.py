@@ -23,39 +23,43 @@ from geometry_helpers import assert_empty, assert_solid
 # Expected geometry (spec — independent of dimensions.py)
 # ============================================================================
 
-# Hub (X = width, Y = height, Z = thickness from wall)
-HUB_X = 30.0
-HUB_Y = 67.0
+# Upper hub and shelf flange (X = width, Y = height, Z = thickness from wall)
+UPPER_HUB_X = 30.0
+SHELF_X = 40.0               # shelf flange is wider than upper hub
+HUB_Y = 73.0                 # total hub height = shelf 15 + rail 50 + lead-in 8
 HUB_Z = 4.0
 
-# Dovetail rail on top of the hub front face
+# Dovetail rail on the upper hub's front face
 RAIL_BASE_WIDTH = 10.0       # narrow bottom — at hub front face (Z = HUB_Z)
 RAIL_TOP_WIDTH = 11.0        # wider top (undercut) — at Z = HUB_Z + RAIL_DEPTH
 RAIL_DEPTH = 7.0             # proud of the hub front face
 RAIL_LENGTH = 50.0           # along Y (vertical in wall coordinates)
 
-# Rail occupies the top 50mm of the 67mm hub, offset 2mm below the top
-# for the lead-in chamfer strip. The bottom 15mm is the shelf.
-LEAD_IN_STRIP = 2.0
-SHELF_Y = 15.0
-RAIL_Y_MAX = HUB_Y / 2 - LEAD_IN_STRIP              # 31.5
-RAIL_Y_MIN = RAIL_Y_MAX - RAIL_LENGTH               # -18.5
-SHELF_Y_MAX = RAIL_Y_MIN                            # -18.5
-SHELF_Y_MIN = -HUB_Y / 2                            # -33.5
+# Y layout built from the hub bottom up
+LEAD_IN_STRIP = 8.0          # 8mm strip at the top of the hub, above the rail
+SHELF_Y = 15.0               # bottom 15mm of the hub is the wider shelf flange
+HUB_BOTTOM_Y = -HUB_Y / 2                          # -36.5
+SHELF_TOP_Y = HUB_BOTTOM_Y + SHELF_Y                # -21.5 (= rail bottom)
+RAIL_Y_MIN = SHELF_TOP_Y                            # -21.5
+RAIL_Y_MAX = RAIL_Y_MIN + RAIL_LENGTH               # +28.5
+HUB_TOP_Y = RAIL_Y_MAX + LEAD_IN_STRIP              # +36.5 (= HUB_Y / 2)
+
+SHELF_Y_MAX = SHELF_TOP_Y                           # -21.5
+SHELF_Y_MIN = HUB_BOTTOM_Y                          # -36.5
 
 # Anchor holes through the hub (Ø 4mm)
 ANCHOR_HOLE_DIAMETER = 4.0
-# Top anchor is centered in the 2mm lead-in strip
-ANCHOR_HOLE_TOP_Y = HUB_Y / 2 - LEAD_IN_STRIP / 2   # 32.5
-# Bottom anchor is centered in the shelf
-ANCHOR_HOLE_BOT_Y = (SHELF_Y_MIN + SHELF_Y_MAX) / 2 # -26.0
+# Top anchor is centered in the 8mm lead-in strip above the rail
+ANCHOR_HOLE_TOP_Y = (RAIL_Y_MAX + HUB_TOP_Y) / 2    # +32.5
+# Bottom anchor is centered in the shelf flange
+ANCHOR_HOLE_BOT_Y = (SHELF_Y_MIN + SHELF_Y_MAX) / 2 # -29.0
 
 # Golden scalars — captured via `make update-goldens`. Placeholders
 # until the first capture run; the capture script overwrites these
 # lines in place.
-GOLDEN_VOLUME = 11624.3307
-GOLDEN_BBOX = (30.0000, 67.0000, 11.0000)
-GOLDEN_CENTROID = (-0.0000, 0.9238, 3.5087)
+GOLDEN_VOLUME = 12934.5107
+GOLDEN_BBOX = (40.0000, 73.0000, 11.0000)
+GOLDEN_CENTROID = (0.0000, -1.1918, 3.3204)
 
 # Tolerances
 VOL_TOL = 1.0   # mm³ STL tessellation noise
@@ -233,3 +237,58 @@ class TestAnchorHoles:
             (-5.0, ANCHOR_HOLE_BOT_Y, z_mid),
         ]
         assert_solid(bracket_mesh, probes, "hub solid away from anchor holes")
+
+
+# ============================================================================
+# Group 5 — Shelf flange (wider than upper hub)
+# ============================================================================
+
+
+class TestShelfFlange:
+    """Shelf is wider than the upper hub — provides case-bottom support."""
+
+    def test_flange_extends_past_upper_hub(self, bracket_mesh):
+        """At X outside UPPER_HUB_X/2 but inside SHELF_X/2, the shelf is solid."""
+        # 5mm overhang on each side: upper hub edge at X=15, shelf edge at X=20.
+        # Probe at X=17.5 (middle of the overhang region).
+        x_overhang = (UPPER_HUB_X / 2 + SHELF_X / 2) / 2  # 17.5
+        z_mid = HUB_Z / 2
+        y_mid = (SHELF_Y_MIN + SHELF_Y_MAX) / 2  # -29
+        assert_solid(
+            bracket_mesh,
+            [(x_overhang, y_mid, z_mid), (-x_overhang, y_mid, z_mid)],
+            "shelf flange overhang",
+        )
+
+    def test_upper_hub_is_not_wider_than_30mm(self, bracket_mesh):
+        """Above the shelf top, X > UPPER_HUB_X/2 is empty (upper hub stops at 30mm)."""
+        # Probe at X=17.5 (inside the flange's overhang region but
+        # above the shelf Y range, at rail-level Y).
+        x_overhang = (UPPER_HUB_X / 2 + SHELF_X / 2) / 2
+        z_mid = HUB_Z / 2
+        y_in_rail_region = (RAIL_Y_MIN + RAIL_Y_MAX) / 2
+        assert_empty(
+            bracket_mesh,
+            [
+                (x_overhang, y_in_rail_region, z_mid),
+                (-x_overhang, y_in_rail_region, z_mid),
+            ],
+            "upper hub is not wider than 30mm",
+        )
+
+    def test_shelf_boundary_transition(self, bracket_mesh):
+        """At the exact boundary Y=SHELF_TOP_Y, the flange overhang ends."""
+        # Just below the shelf top: solid in the overhang
+        x_overhang = (UPPER_HUB_X / 2 + SHELF_X / 2) / 2
+        z_mid = HUB_Z / 2
+        assert_solid(
+            bracket_mesh,
+            [(x_overhang, SHELF_TOP_Y - 1.0, z_mid)],
+            "shelf flange just below top",
+        )
+        # Just above the shelf top: empty in the overhang region
+        assert_empty(
+            bracket_mesh,
+            [(x_overhang, SHELF_TOP_Y + 1.0, z_mid)],
+            "above shelf flange transition",
+        )
