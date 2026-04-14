@@ -1,65 +1,79 @@
 """Shared dimensions and constants for CrowPanel 7" case design.
 
-All measurements in millimeters. Source: Elecrow STEP file + datasheet.
+All measurements in millimeters. Source: Elecrow STEP file + datasheet
+and user-measured values.
 Board: CrowPanel Advance 7" (DIS02170A V1.3/V1.4)
 """
 
 # --- Board dimensions (from STEP model) ---
 BOARD_LENGTH = 181.26  # X axis
 BOARD_HEIGHT = 108.36  # Y axis
-BOARD_DEPTH = 16.00    # Z axis (total thickness)
+BOARD_DEPTH = 16.00    # Z axis (total thickness, back components → display glass)
 
 # --- Display ---
 DISPLAY_ACTIVE_WIDTH = 156.0
 DISPLAY_ACTIVE_HEIGHT = 87.0
 
+# --- Board-back clearance (user-measured) ---
+# Tallest component on the back of the PCB is ~7mm from the PCB surface.
+# Standoffs must lift the PCB clear of this by ≥1mm.
+BACK_COMPONENT_HEIGHT = 7.0
+
+# --- Board mounting holes (user-measured with calipers) ---
+# 4× M3 clearance holes, one in each corner, 3.2mm from both edges to
+# the hole center. Assumed symmetric on both axes.
+BOARD_HOLE_EDGE_OFFSET = 3.2
+BOARD_HOLE_DIAMETER = 3.2  # M3 clearance
+
 # --- USB-C port (right edge, centered vertically) ---
-USB_EDGE = "right"  # X ≈ 170mm
-USB_CENTER_Y = 52.0  # approximate center from board bottom
+USB_EDGE = "right"            # X = +BOARD_LENGTH/2
+USB_CENTER_Y_FROM_BOTTOM = 52.0  # from the bottom of the board
 USB_WIDTH = 8.9
 USB_HEIGHT = 4.2
+USB_CLEARANCE = 0.5  # each side
 
-# --- Rail/channel system ---
+# --- Rail/channel system (validated by tolerance_test) ---
 # Clearance history (PLA tests):
 #   0.5mm total — too loose
 #   0.3mm total — still slightly loose
 #   0.1mm total — good PLA fit
-# For PETG (target material) add 0.1mm extra for die swell → 0.2mm total.
-# Re-test after first PETG print and adjust.
-RAIL_WIDTH = 10.0
+# For PETG add 0.1mm extra for die swell → 0.2mm total.
+RAIL_WIDTH = 10.0              # narrow base of the dovetail
+RAIL_TOP_WIDTH = 11.0          # wider top (1mm taper per side)
 RAIL_DEPTH = 7.0
-RAIL_CLEARANCE = 0.2       # 0.1 each side — PETG-tuned starting point
-CHANNEL_WIDTH = RAIL_WIDTH + RAIL_CLEARANCE  # 10.2mm
-CHANNEL_DEPTH = RAIL_DEPTH + 0.3             # 7.3mm vertical clearance
+RAIL_CLEARANCE = 0.2           # total, split evenly
 
-# --- Bracket ---
-BRACKET_WALL = 3.0          # wall thickness around structural features
-BRACKET_ARM_LENGTH = 60.0   # how far arms extend from hub
-BRACKET_HUB_WIDTH = 50.0    # central hub X dimension
-BRACKET_HUB_HEIGHT = 30.0   # central hub Y dimension
-BRACKET_THICKNESS = 4.0     # Z thickness of bracket base
+CHANNEL_BASE_WIDTH = RAIL_WIDTH + RAIL_CLEARANCE       # 10.2
+CHANNEL_TOP_WIDTH = RAIL_TOP_WIDTH + RAIL_CLEARANCE    # 11.2
+CHANNEL_DEPTH = RAIL_DEPTH + 0.3                        # 7.3 vertical slop
 
-# --- Mounting ---
-SCREW_HOLE_DIAMETER = 4.0   # for M3 + clearance (drywall anchors)
-SCREW_HEAD_DIAMETER = 7.0   # M3 screw head clearance
+# --- Wall bracket ---
+BRACKET_HUB_X = 30.0           # width
+BRACKET_HUB_Y = 67.0           # height (50mm rail + 15mm shelf + 2mm top chamfer strip)
+BRACKET_HUB_Z = 4.0            # thickness (wall to hub front)
+BRACKET_RAIL_LENGTH = 50.0     # dovetail rail length (along Y, vertical)
+BRACKET_SHELF_Y = 15.0         # solid shelf height (bottom of hub, no rail)
+BRACKET_RAIL_LEAD_IN = 2.0     # chamfer at the top of the rail
 
-# --- Snap lock ---
-# Design: bump on rail rides a cantilever tongue cut into the top of the
-# rail. Bump protrudes above the groove ceiling (intentional 0.2mm
-# interference) so the tongue deflects downward as the rail slides in.
-# At the snap pocket the tongue springs back to its rest position,
-# producing the click. Earlier designs had SNAP_PROTRUSION < GROOVE_DEPTH
-# which meant no interference at all — the "snap" was just air.
-SNAP_PROTRUSION = 1.3       # bump height (0.2mm interference with 1.0mm groove + 0.1 slop)
-SNAP_RAMP_LENGTH = 3.0      # 3mm entry ramp on the bump (~23° at 1.3mm rise)
-SNAP_CATCH_LENGTH = 1.5     # flat catch surface length
-SNAP_POCKET_EXTRA = 0.4     # pocket is this much deeper than groove (snap drop)
-SNAP_POCKET_RAMP = 2.0      # 2mm ramps inside pocket on both sides
+# --- Mounting hardware ---
+SCREW_HOLE_DIAMETER = 4.0      # M3 + clearance (drywall anchors + bracket)
+SCREW_HEAD_DIAMETER = 7.0      # M3 head clearance
 
-# --- Cantilever snap tongue (carved into piece A's rail) ---
-SNAP_CANT_LENGTH = 8.0      # cantilever beam length (anchor to free +X end)
-SNAP_CANT_THICK = 2.0       # tongue thickness above the slot (flex material)
-SNAP_CANT_SLOT_HEIGHT = 1.5 # slot void height below the tongue
+# --- Case (monocoque back tray) ---
+CASE_MOUNT_ORIENTATION = "landscape"
+CASE_WALL_THICKNESS = 2.0
+CASE_BOARD_CLEARANCE = 0.3     # radial clearance around the board inside the tray
+CASE_BACK_PLATE_ABOVE_CHANNEL = 3.0  # material above the dovetail channel floor
+
+# Interior standoffs
+CASE_STANDOFF_OD = 6.0
+CASE_STANDOFF_PILOT_DIAMETER = 2.5   # self-tapping M3 into plastic
+CASE_STANDOFF_HEIGHT = BACK_COMPONENT_HEIGHT + 1.0  # 8.0 — clears back components + 1mm
+
+# Bracket recess (pocket in the case back that accepts the hub flush)
+CASE_BRACKET_RECESS_X = BRACKET_HUB_X
+CASE_BRACKET_RECESS_Y = BRACKET_HUB_Y
+CASE_BRACKET_RECESS_DEPTH = BRACKET_HUB_Z
 
 # --- Printer tolerances ---
 PRINTER_UNDERSIZING = 0.19  # Centauri Carbon 2 average (parts print smaller)
