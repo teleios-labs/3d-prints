@@ -38,12 +38,19 @@ jobs:
           for stl in sorted(output.rglob('*.stl')):
               mesh = trimesh.load(str(stl))
               mesh.merge_vertices()
-              expected_euler = 2 * mesh.body_count
-              euler_ok = mesh.euler_number == expected_euler
+              # process(validate=True) cleans up duplicate/zero-area faces
+              # and normal flips from OCCT's STL tessellation — without
+              # it, otherwise-manifold meshes can report watertight=False.
+              mesh.process(validate=True)
+              # Manifold closed surfaces with through-holes have euler != 2
+              # (each hole reduces euler by 2). The correct printability
+              # check is watertight-ness + positive volume; euler_number
+              # is logged for visibility but not used for pass/fail.
+              watertight_ok = mesh.is_watertight
               volume_ok = mesh.volume > 0
-              status = 'OK' if (euler_ok and volume_ok) else 'FAIL'
-              print(f'{stl.relative_to(output)}: {status} (euler={mesh.euler_number}, bodies={mesh.body_count}, volume={mesh.volume:.1f}, faces={len(mesh.faces)})')
-              if not (euler_ok and volume_ok):
+              status = 'OK' if (watertight_ok and volume_ok) else 'FAIL'
+              print(f'{stl.relative_to(output)}: {status} (watertight={watertight_ok}, bodies={mesh.body_count}, euler={mesh.euler_number}, volume={mesh.volume:.1f}, faces={len(mesh.faces)})')
+              if not (watertight_ok and volume_ok):
                   failed = True
           sys.exit(1 if failed else 0)
           "
