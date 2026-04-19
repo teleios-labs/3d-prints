@@ -6,8 +6,8 @@ Board: CrowPanel Advance 7" (DIS02170A V1.3/V1.4)
 """
 
 # --- Board dimensions (from STEP model) ---
-BOARD_LENGTH = 181.26  # X axis
-BOARD_HEIGHT = 108.36  # Y axis
+BOARD_LENGTH = 158.67  # X axis — user-measured 2026-04-14
+BOARD_HEIGHT = 104.16  # Y axis — user-measured 2026-04-14
 BOARD_DEPTH = 16.00    # Z axis (total thickness, back components → display glass)
 
 # --- Display ---
@@ -27,7 +27,7 @@ BOARD_HOLE_DIAMETER = 3.2  # M3 clearance
 
 # --- USB-C port (right edge, centered vertically) ---
 USB_EDGE = "right"            # X = +BOARD_LENGTH/2
-USB_CENTER_Y_FROM_BOTTOM = 52.0  # from the bottom of the board
+USB_CENTER_Y_FROM_BOTTOM = 51.22  # from the bottom of the board — user-measured 2026-04-14
 USB_WIDTH = 8.9
 USB_HEIGHT = 4.2
 USB_CLEARANCE = 0.5  # each side
