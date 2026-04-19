@@ -46,6 +46,7 @@ from esp_screen_case.dimensions import (
     BOARD_LENGTH,
     BRACKET_RAIL_LENGTH,
     CASE_BACK_PLATE_ABOVE_CHANNEL,
+    CASE_BACK_PLATE_THIN,
     CASE_BOARD_CLEARANCE,
     CASE_BRACKET_RECESS_DEPTH,
     CASE_BRACKET_RECESS_X,
@@ -53,6 +54,7 @@ from esp_screen_case.dimensions import (
     CASE_STANDOFF_HEIGHT,
     CASE_STANDOFF_OD,
     CASE_STANDOFF_PILOT_DIAMETER,
+    CASE_THICK_STRIP_HALF_WIDTH,
     CASE_WALL_THICKNESS,
     CHANNEL_BASE_WIDTH,
     CHANNEL_DEPTH,
@@ -70,12 +72,13 @@ INTERIOR_X = EXTERIOR_X - 2 * CASE_WALL_THICKNESS
 INTERIOR_Y = EXTERIOR_Y - 2 * CASE_WALL_THICKNESS
 
 # --- Z stack (z=0 at wall, increasing toward the user) ---
-Z_RECESS_FLOOR = CASE_BRACKET_RECESS_DEPTH                          # 4
-Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + CHANNEL_DEPTH                    # 11.3 (RAIL_DEPTH + 0.3 slop)
-Z_INTERIOR_FLOOR = Z_CHANNEL_FLOOR + CASE_BACK_PLATE_ABOVE_CHANNEL   # 14
-Z_STANDOFF_TOP = Z_INTERIOR_FLOOR + CASE_STANDOFF_HEIGHT             # 22
+Z_RECESS_FLOOR = CASE_BRACKET_RECESS_DEPTH                                 # 4
+Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + CHANNEL_DEPTH                           # 11.3 (RAIL_DEPTH + 0.3 slop)
+Z_INTERIOR_FLOOR_HIGH = Z_CHANNEL_FLOOR + CASE_BACK_PLATE_ABOVE_CHANNEL    # 14.3 — above the channel
+Z_INTERIOR_FLOOR_LOW = CASE_BACK_PLATE_THIN                                # 3 — everywhere else
+Z_STANDOFF_TOP = Z_INTERIOR_FLOOR_LOW + CASE_STANDOFF_HEIGHT               # 22 — PCB back rests here
 # PCB is 1.6mm thick, display module protrudes 7.4mm in front of the PCB.
-Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4                              # 31
+Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4                                    # 31
 
 # --- Standoff XY positions (case-centered coordinates) ---
 STANDOFF_X = BOARD_LENGTH / 2 - BOARD_HOLE_EDGE_OFFSET
@@ -102,14 +105,53 @@ USB_Z_CENTER = Z_STANDOFF_TOP + 0.8                   # PCB mid-thickness
 
 
 def _build_shell() -> Part:
-    """Solid exterior shell with the interior tray cavity subtracted."""
+    """Solid exterior shell with the interior tray cavity subtracted.
+
+    The interior cavity is two-tier in Z: above the channel strip down
+    the middle, the floor sits at Z_INTERIOR_FLOOR_HIGH (14.3mm) to
+    preserve the 3mm ceiling above the dovetail channel. Everywhere
+    else, the floor drops to Z_INTERIOR_FLOOR_LOW (3mm), so 80%+ of
+    the back plate is only 3mm thick — saves a lot of plastic and
+    print time.
+    """
     with BuildPart() as shell:
+        # Exterior solid block
         with Locations(Pos(0, 0, Z_CASE_TOP / 2)):
             Box(EXTERIOR_X, EXTERIOR_Y, Z_CASE_TOP)
 
-        cavity_h = Z_CASE_TOP - Z_INTERIOR_FLOOR
-        with Locations(Pos(0, 0, Z_INTERIOR_FLOOR + cavity_h / 2 + 0.05)):
-            Box(INTERIOR_X, INTERIOR_Y, cavity_h + 0.1, mode=Mode.SUBTRACT)
+        # Main cavity: from Z_INTERIOR_FLOOR_HIGH up through the open front.
+        # Starts above the channel strip's ceiling; side walls rise from here.
+        cavity_h_high = Z_CASE_TOP - Z_INTERIOR_FLOOR_HIGH
+        with Locations(Pos(0, 0, Z_INTERIOR_FLOOR_HIGH + cavity_h_high / 2 + 0.05)):
+            Box(INTERIOR_X, INTERIOR_Y, cavity_h_high + 0.1, mode=Mode.SUBTRACT)
+
+        # Extra hollowing: in the thin-back-plate regions (X outside the
+        # thick strip), drop the interior floor from Z_INTERIOR_FLOOR_HIGH
+        # down to Z_INTERIOR_FLOOR_LOW. This removes the unnecessary
+        # back-plate material between 3mm and 14.3mm everywhere outside
+        # the channel strip.
+        #
+        # Overshoot only on the TOP (toward Z_INTERIOR_FLOOR_HIGH) to avoid
+        # cutting into the 3mm base plate that the standoffs sit on.
+        # At the bottom (Z_INTERIOR_FLOOR_LOW), we use the exact face so the
+        # thin floor is preserved intact.
+        thin_top = Z_INTERIOR_FLOOR_HIGH + 0.05          # slight overshoot into main cavity
+        thin_bottom = Z_INTERIOR_FLOOR_LOW               # exact — don't eat the base plate
+        thin_h = thin_top - thin_bottom                  # 11.35mm
+        thin_x_outer = INTERIOR_X / 2
+        thin_x_inner = CASE_THICK_STRIP_HALF_WIDTH
+        thin_region_width = thin_x_outer - thin_x_inner
+        thin_region_center = (thin_x_outer + thin_x_inner) / 2
+        thin_z_center = (thin_bottom + thin_top) / 2
+
+        for sign in (-1, +1):
+            with Locations(Pos(sign * thin_region_center, 0, thin_z_center)):
+                Box(
+                    thin_region_width,
+                    INTERIOR_Y,
+                    thin_h,
+                    mode=Mode.SUBTRACT,
+                )
 
     return shell.part
 
@@ -160,7 +202,7 @@ def build() -> Part:
         ]
         with Locations(
             *[
-                Pos(x, y, Z_INTERIOR_FLOOR + CASE_STANDOFF_HEIGHT / 2)
+                Pos(x, y, Z_INTERIOR_FLOOR_LOW + CASE_STANDOFF_HEIGHT / 2)
                 for x, y in standoff_positions
             ]
         ):

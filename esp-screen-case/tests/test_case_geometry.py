@@ -23,13 +23,23 @@ BOARD_CLEARANCE = 0.3
 EXTERIOR_X = BOARD_X + BOARD_CLEARANCE + 2 * WALL_THICKNESS   # 162.97
 EXTERIOR_Y = BOARD_Y + BOARD_CLEARANCE + 2 * WALL_THICKNESS   # 108.46
 
-# Z stack (z=0 at wall, increasing toward user)
+# Z stack (z=0 at wall, increasing toward user).
+# Interior floor is now two-tier: low (Z=3) in most areas, high (Z=14.3)
+# only in the thick strip that preserves the channel ceiling.
 Z_WALL = 0.0
 Z_RECESS_FLOOR = 4.0
 Z_CHANNEL_FLOOR = Z_RECESS_FLOOR + 7.3        # 11.3 — RAIL_DEPTH + 0.3 slop
-Z_INTERIOR_FLOOR = Z_CHANNEL_FLOOR + 3.0      # 14.3
-Z_STANDOFF_TOP = Z_INTERIOR_FLOOR + 8.0       # 22.3 — PCB back rests here
-Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4       # 31.3 — flush with display glass
+Z_INTERIOR_FLOOR_HIGH = Z_CHANNEL_FLOOR + 3.0 # 14.3 — above channel
+Z_INTERIOR_FLOOR_LOW = 3.0                    # elsewhere
+Z_STANDOFF_TOP = Z_INTERIOR_FLOOR_LOW + 19.0  # 22 — PCB back rests here
+Z_CASE_TOP = Z_STANDOFF_TOP + 1.6 + 7.4       # 31 — flush with display glass
+
+# Alias for backward compatibility — most probe tests want the floor at the
+# standoff corners, which is the low (thin) floor.
+Z_INTERIOR_FLOOR = Z_INTERIOR_FLOOR_LOW
+
+# Thick strip down the middle — preserves the channel ceiling
+CASE_THICK_STRIP_HALF_WIDTH = 6.6
 
 # Bracket recess — opens at the case's bottom exterior edge so the
 # bracket hub can slide up into it from below.
@@ -61,8 +71,8 @@ STANDOFF_PILOT_DIAMETER = 2.5
 USB_CENTER_Y = 51.22 - BOARD_Y / 2  # -0.86
 
 # Golden placeholders
-GOLDEN_VOLUME = 260763.6983
-GOLDEN_BBOX = (162.9700, 108.4600, 31.3000)
+GOLDEN_VOLUME = 90607.5590
+GOLDEN_BBOX = (162.9700, 108.4600, 31.0000)
 
 VOL_TOL = 5.0
 DIM_TOL = 0.05
@@ -215,8 +225,8 @@ class TestDovetailChannel:
         )
 
     def test_material_above_channel(self, case_mesh):
-        """3mm of material exists between channel floor and interior floor."""
-        z = (Z_CHANNEL_FLOOR + Z_INTERIOR_FLOOR) / 2  # 12.5
+        """3mm of material exists between channel floor and the high interior floor."""
+        z = (Z_CHANNEL_FLOOR + Z_INTERIOR_FLOOR_HIGH) / 2  # 12.8 — inside thick strip
         y = (CHANNEL_Y_MIN + CHANNEL_Y_MAX) / 2
         assert_solid(case_mesh, [(0.0, y, z)], "material above channel")
 
@@ -229,14 +239,19 @@ class TestDovetailChannel:
 class TestStandoffs:
     def test_interior_floor_is_solid(self, case_mesh):
         """Interior floor is solid between standoffs (no channel bleed-through)."""
-        z = Z_INTERIOR_FLOOR - 0.3
+        # Probe at Z just below Z_INTERIOR_FLOOR_LOW (3.0): should be
+        # solid back-plate material since the thin floor has the cavity
+        # above it. Probes must be outside the bracket recess XY footprint
+        # (recess covers X=[-15,+15] for its Y range) and outside the
+        # channel (X=[-5.6,+5.6]) — use X=30 to stay in the thin region.
+        z = Z_INTERIOR_FLOOR_LOW - 0.3  # 2.7
         probes = [
             (30.0, 0.0, z),
             (-30.0, 0.0, z),
-            (0.0, 30.0, z),  # Y outside the channel
-            (0.0, -30.0, z),
+            (30.0, 30.0, z),   # well outside recess/channel in both X and Y
+            (-30.0, -30.0, z),
         ]
-        assert_solid(case_mesh, probes, "interior floor")
+        assert_solid(case_mesh, probes, "interior floor (thin)")
 
     def test_four_standoffs_present(self, case_mesh):
         """Standoffs exist at all 4 corners at their mid-height."""
@@ -260,6 +275,20 @@ class TestStandoffs:
         ]
         assert_empty(case_mesh, probes, "standoff pilot holes")
 
+    def test_thin_back_plate_has_cavity_above(self, case_mesh):
+        """Outside the thick strip, the case back is only 3mm thick —
+        the interior cavity extends all the way down to Z=3."""
+        # Probe at Z=5 (above the thin floor but below the thick floor),
+        # well outside the thick strip in X — should be empty (cavity).
+        x = CASE_THICK_STRIP_HALF_WIDTH + 5.0  # 11.6
+        probes = [
+            (x, 0.0, 5.0),
+            (-x, 0.0, 5.0),
+            (x, 30.0, 10.0),
+            (-x, -30.0, 10.0),
+        ]
+        assert_empty(case_mesh, probes, "thin back plate cavity")
+
 
 # ============================================================================
 # Side walls + USB-C cutout
@@ -268,8 +297,13 @@ class TestStandoffs:
 
 class TestWallsAndUSB:
     def test_side_walls_are_solid(self, case_mesh):
-        """Side walls exist at mid-interior-height, at all four sides."""
-        z = Z_INTERIOR_FLOOR + 5.0
+        """Side walls exist at mid-interior-height, at all four sides.
+
+        Use Z_STANDOFF_TOP - 2.0 (= 20.0) which is above the channel
+        ceiling (11.3) and above the step, so all four wall probes land
+        in solid material regardless of the two-tier floor.
+        """
+        z = Z_STANDOFF_TOP - 2.0  # 20.0 — above channel, within side walls
         probes = [
             (-EXTERIOR_X / 2 + 1.0, 0.0, z),
             (EXTERIOR_X / 2 - 1.0, 30.0, z),  # right wall clear of USB cutout

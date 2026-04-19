@@ -68,10 +68,17 @@ CASE_WALL_THICKNESS = 2.0
 CASE_BOARD_CLEARANCE = 0.3     # radial clearance around the board inside the tray
 CASE_BACK_PLATE_ABOVE_CHANNEL = 3.0  # material above the dovetail channel floor
 
-# Interior standoffs
+# Interior floor is two-tier: thin (Z=3) everywhere except a narrow strip
+# down the middle that keeps the full back-plate thickness above the
+# dovetail channel (Z=14.3). The thick strip is slightly wider than the
+# channel for wall integrity.
+CASE_BACK_PLATE_THIN = 3.0         # thin back plate thickness (mm)
+CASE_THICK_STRIP_HALF_WIDTH = 6.6  # X half-width of the thick strip (channel top width / 2 + 1 mm margin)
+
+# Interior standoffs — rise from the THIN interior floor to the PCB back.
 CASE_STANDOFF_OD = 6.0
 CASE_STANDOFF_PILOT_DIAMETER = 2.5   # self-tapping M3 into plastic
-CASE_STANDOFF_HEIGHT = BACK_COMPONENT_HEIGHT + 1.0  # 8.0 — clears back components + 1mm
+CASE_STANDOFF_HEIGHT = 19.0          # thin floor (3) + 19 = standoff top (22), PCB back lands at 22
 
 # Bracket recess (pocket in the case back that accepts the hub flush).
 # The recess only covers the portion of the hub that's INSIDE the case
