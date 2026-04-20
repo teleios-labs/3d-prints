@@ -14,6 +14,8 @@ make clean            # wipe output/
 
 The Makefile is the preferred entrypoint — prefer it over raw `uv run` invocations in docs and PR bodies so the commands stay working when the script paths move.
 
+**After any CAD change**, always run `make build` at the end so the STL files in `output/` are regenerated and ready to slice. Don't leave a CAD change committed without the rebuilt STL — the user relies on `output/<project>/<part>.stl` being current when they open the slicer.
+
 ## Structure
 
 - Each project is a uv workspace member with its own `pyproject.toml` and src layout
