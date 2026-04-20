@@ -6,7 +6,7 @@ Board: CrowPanel Advance 7" (DIS02170A V1.3/V1.4)
 """
 
 # --- Board dimensions (from STEP model) ---
-BOARD_LENGTH = 158.67  # X axis — user-measured 2026-04-14
+BOARD_LENGTH = 177.61  # X axis — user-measured 2026-04-19 (prior 158.67 was mis-measured)
 BOARD_HEIGHT = 104.16  # Y axis — user-measured 2026-04-14
 BOARD_DEPTH = 16.00    # Z axis (total thickness, back components → display glass)
 

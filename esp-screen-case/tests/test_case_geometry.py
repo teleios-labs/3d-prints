@@ -14,13 +14,13 @@ from geometry_helpers import assert_empty, assert_solid
 # ============================================================================
 
 # Board
-BOARD_X = 158.67
+BOARD_X = 177.61
 BOARD_Y = 104.16
 
 # Case exterior
 WALL_THICKNESS = 2.0
 BOARD_CLEARANCE = 0.3
-EXTERIOR_X = BOARD_X + BOARD_CLEARANCE + 2 * WALL_THICKNESS   # 162.97
+EXTERIOR_X = BOARD_X + BOARD_CLEARANCE + 2 * WALL_THICKNESS   # 181.91
 EXTERIOR_Y = BOARD_Y + BOARD_CLEARANCE + 2 * WALL_THICKNESS   # 108.46
 
 # Z stack (z=0 at wall, increasing toward user).
@@ -71,8 +71,8 @@ STANDOFF_PILOT_DIAMETER = 2.5
 USB_CENTER_Y = 51.22 - BOARD_Y / 2  # -0.86
 
 # Golden placeholders
-GOLDEN_VOLUME = 90607.5590
-GOLDEN_BBOX = (162.9700, 108.4600, 31.0000)
+GOLDEN_VOLUME = 98891.5375
+GOLDEN_BBOX = (181.9100, 108.4600, 31.0000)
 
 VOL_TOL = 5.0
 DIM_TOL = 0.05
